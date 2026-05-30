@@ -1,0 +1,30 @@
+# Entorno y secretos
+.env
+.env.test
+
+# Logs (mantener carpeta con .gitkeep)
+logs/*.log
+!logs/.gitkeep
+
+# Subidas de usuarios
+public/uploads/*
+!public/uploads/.gitkeep
+
+# SO / IDE
+Thumbs.db
+.DS_Store
+.idea/
+*.swp
+*.swo
+
+# Testing — solo vive en local
+node_modules/
+package-lock.json
+test_screenshots/
+
+# Claude Code
+.claude/
+
+# Scripts auxiliares de generacion (no afectan a la app)
+gen_*.ps1
+gen_*.js

@@ -1,0 +1,253 @@
+<?php
+/**
+ * Página Principal - Parque Industrial de Catamarca
+ */
+require_once __DIR__ . '/../config/config.php';
+
+$page_title = 'Inicio';
+
+// Obtener estadísticas
+$stats = get_estadisticas_generales();
+
+// Obtener empresas destacadas
+try {
+    $db = getDB();
+    $stmt = $db->query("SELECT * FROM empresas WHERE estado = 'activa' ORDER BY visitas DESC LIMIT 6");
+    $empresas_destacadas = $stmt->fetchAll();
+} catch (Exception $e) {
+    $empresas_destacadas = [];
+}
+
+// Obtener últimas noticias
+try {
+    $stmt = $db->query("SELECT p.*, e.nombre as empresa_nombre FROM publicaciones p
+                        LEFT JOIN empresas e ON p.empresa_id = e.id
+                        WHERE p.estado = 'aprobado'
+                        ORDER BY p.created_at DESC LIMIT 3");
+    $noticias = $stmt->fetchAll();
+} catch (Exception $e) {
+    $noticias = [];
+}
+
+// Obtener rubros para gráfico
+$rubros = get_rubros_con_conteo();
+
+// Banners del carrusel (editables por ministerio)
+$banners_home = [];
+try {
+    $db->query("SELECT 1 FROM banners_home LIMIT 1");
+    $stmt = $db->query("SELECT * FROM banners_home WHERE activo = 1 ORDER BY orden ASC, id ASC");
+    $banners_home = $stmt->fetchAll();
+} catch (Exception $e) {
+    $banners_home = [];
+}
+
+require_once BASEPATH . '/includes/header.php';
+?>
+
+<?php require_once BASEPATH . '/includes/partials/hero_carousel.php'; ?>
+
+<!-- Cuadros con números: todos son botones (enlaces) -->
+<div class="stat-cards">
+    <a href="<?= PUBLIC_URL ?>/empresas.php" class="stat-card stat-card-link" title="Ver empresas">
+        <div class="icon"><i class="bi bi-building"></i></div>
+        <div class="number" data-count="<?= $stats['total_empresas_activas'] ?? 0 ?>"><?= $stats['total_empresas_activas'] ?? 0 ?></div>
+        <div class="label">Empresas Activas</div>
+    </a>
+    <a href="<?= PUBLIC_URL ?>/noticias.php?tipo=empleados" class="stat-card stat-card-link" title="Noticias sobre empleados">
+        <div class="icon"><i class="bi bi-people"></i></div>
+        <div class="number" data-count="<?= $stats['total_empleados'] ?? 0 ?>"><?= format_number($stats['total_empleados'] ?? 0) ?></div>
+        <div class="label">Empleados</div>
+    </a>
+    <a href="<?= PUBLIC_URL ?>/parque.php" class="stat-card stat-card-link" title="Mapa del parque industrial">
+        <div class="icon"><i class="bi bi-grid"></i></div>
+        <div class="number" data-count="<?= $stats['total_rubros'] ?? 0 ?>"><?= $stats['total_rubros'] ?? 0 ?></div>
+        <div class="label">Sectores Industriales</div>
+    </a>
+    <a href="<?= PUBLIC_URL ?>/mapa.php" class="stat-card stat-card-link" title="Mapa interactivo">
+        <div class="icon"><i class="bi bi-geo-alt"></i></div>
+        <div class="number">4</div>
+        <div class="label">Zonas Industriales</div>
+    </a>
+    <a href="<?= PUBLIC_URL ?>/estadisticas.php#huella" class="stat-card stat-card-link" title="Huella de carbono">
+        <div class="icon"><i class="bi bi-cloud-arrow-down"></i></div>
+        <div class="number"><?= $stats['huella_carbono'] ?? '400' ?></div>
+        <div class="label">tCO2e Huella Carbono</div>
+    </a>
+</div>
+
+<!-- Dato impacto -->
+<div class="dato-impacto-strip">
+    <div class="container">
+        <div class="dato-impacto-inner">
+            <span class="dato-impacto-icon"><i class="bi bi-lightbulb-fill"></i></span>
+            <span class="dato-impacto-text">
+                ¿Sabías que el Parque Industrial El Pantanillo concentra empresas de
+                <strong><?= ($stats['total_rubros'] ?? 0) > 0 ? ($stats['total_rubros']) . ' rubros industriales' : 'múltiples rubros industriales' ?></strong>
+                y genera más de
+                <strong><?= ($stats['total_empleados'] ?? 0) > 0 ? format_number($stats['total_empleados']) . ' empleos directos' : 'cientos de empleos directos' ?></strong>
+                en Catamarca?
+            </span>
+            <a href="<?= PUBLIC_URL ?>/estadisticas.php" class="dato-impacto-link">Ver estadísticas <i class="bi bi-arrow-right ms-1"></i></a>
+        </div>
+    </div>
+</div>
+
+<!-- Empresas Destacadas -->
+<section class="section">
+    <div class="container">
+        <div class="section-header">
+            <h2>Empresas del Parque Industrial</h2>
+            <p>Conocé las empresas que impulsan el desarrollo industrial de Catamarca</p>
+            <div class="section-divider"></div>
+        </div>
+        
+        <div class="row g-4 justify-content-center empresa-destacadas-row">
+            <?php if (empty($empresas_destacadas)): ?>
+                <?php
+                $ejemplos = [
+                    ['nombre' => 'Algodonera del Valle S.A.', 'rubro' => 'Textil', 'ubicacion' => 'PI El Pantanillo'],
+                    ['nombre' => 'Botas Catamarca S.A.', 'rubro' => 'Calzados', 'ubicacion' => 'PI El Pantanillo'],
+                    ['nombre' => 'Block S.R.L.', 'rubro' => 'Hormigón', 'ubicacion' => 'PI El Pantanillo'],
+                    ['nombre' => 'INGES S.R.L', 'rubro' => 'Equipos Industriales', 'ubicacion' => 'PI El Pantanillo'],
+                    ['nombre' => 'JL Uniformes S.R.L.', 'rubro' => 'Textil', 'ubicacion' => 'PI El Pantanillo'],
+                    ['nombre' => 'ATC Antonio Tadeo Cabrera', 'rubro' => 'Metalúrgica', 'ubicacion' => 'PI El Pantanillo'],
+                ];
+                foreach ($ejemplos as $emp):
+                    $card_options = ['show_visitas' => false, 'show_contact' => false, 'show_tel_button' => false];
+                    require BASEPATH . '/includes/partials/card_empresa.php';
+                endforeach;
+                ?>
+            <?php else: ?>
+                <?php foreach ($empresas_destacadas as $emp):
+                    $card_options = ['show_visitas' => true, 'show_contact' => false, 'show_tel_button' => false];
+                    require BASEPATH . '/includes/partials/card_empresa.php';
+                endforeach; ?>
+            <?php endif; ?>
+        </div>
+        
+        <div class="text-center mt-4">
+            <a href="<?= PUBLIC_URL ?>/empresas.php" class="btn btn-primary btn-lg">
+                <i class="bi bi-grid me-2"></i>Ver todas las empresas
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Gráfico de Rubros -->
+<section class="section bg-white">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-5">
+                <h2 class="text-primary mb-4">Industrias por Sector</h2>
+                <p>El Parque Industrial de Catamarca cuenta con empresas de diversos sectores productivos, destacándose la industria textil, construcción y metalúrgica.</p>
+                <a href="<?= PUBLIC_URL ?>/estadisticas.php" class="btn btn-primary mt-3">
+                    <i class="bi bi-graph-up me-2"></i>Ver estadísticas completas
+                </a>
+            </div>
+            <div class="col-lg-7">
+                <div class="chart-container">
+                    <canvas id="chartRubros" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Zona del parque: mapa desde internet (OSM) con polígono y contorno resaltado -->
+<section class="section">
+    <div class="container">
+        <div class="section-header">
+            <h2>Zona del Parque Industrial</h2>
+            <p>Polígono del Parque Industrial El Pantanillo. Para ver las empresas en el mapa, ingresá al mapa interactivo.</p>
+            <div class="section-divider"></div>
+        </div>
+        
+        <div id="mapParqueIndex" style="height:420px; border-radius:12px; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,0.15);"></div>
+        
+        <div class="text-center mt-4">
+            <a href="<?= PUBLIC_URL ?>/mapa.php" class="btn btn-primary btn-lg">
+                <i class="bi bi-map me-2"></i>Ver mapa con empresas
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Accesos rápidos (botonera) -->
+<section class="section bg-light py-5">
+    <div class="container">
+        <div class="section-header mb-4">
+            <h2>Accesos Rápidos</h2>
+            <p>Todo lo que necesitás, en un clic</p>
+            <div class="section-divider"></div>
+        </div>
+        <div class="row g-3 justify-content-center">
+            <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+                <a href="<?= PUBLIC_URL ?>/empresas.php" class="botonera-item">
+                    <i class="bi bi-building"></i>
+                    <span>Empresas</span>
+                </a>
+            </div>
+            <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+                <a href="<?= PUBLIC_URL ?>/mapa.php" class="botonera-item">
+                    <i class="bi bi-map"></i>
+                    <span>Mapa interactivo</span>
+                </a>
+            </div>
+            <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+                <a href="<?= PUBLIC_URL ?>/estadisticas.php" class="botonera-item">
+                    <i class="bi bi-graph-up"></i>
+                    <span>Estadísticas</span>
+                </a>
+            </div>
+            <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+                <a href="<?= PUBLIC_URL ?>/noticias.php" class="botonera-item">
+                    <i class="bi bi-newspaper"></i>
+                    <span>Noticias</span>
+                </a>
+            </div>
+            <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+                <a href="<?= PUBLIC_URL ?>/el-parque.php" class="botonera-item">
+                    <i class="bi bi-info-circle"></i>
+                    <span>El Parque</span>
+                </a>
+            </div>
+            <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+                <a href="<?= PUBLIC_URL ?>/presentar-proyecto.php" class="botonera-item botonera-item--cta">
+                    <i class="bi bi-send"></i>
+                    <span>Presentar proyecto</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<?php
+$rubros_json = json_encode(array_slice($rubros, 0, 10));
+$extra_js = '<script src="' . PUBLIC_URL . '/js/parque-leaflet.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    var rubrosData = ' . $rubros_json . ';
+    var labels = rubrosData.length > 0 ? rubrosData.map(function(r) { return r.nombre; }) : ["Textil", "Construcción", "Metalúrgica", "Alimentos", "Transporte", "Reciclado", "Hormigón", "Otros"];
+    var data = rubrosData.length > 0 ? rubrosData.map(function(r) { return r.total_empresas; }) : [14, 11, 5, 5, 5, 4, 3, 31];
+    var colors = ["#3498db", "#e74c3c", "#95a5a6", "#27ae60", "#f39c12", "#2ecc71", "#7f8c8d", "#9b59b6", "#1abc9c", "#e67e22"];
+    if (document.getElementById("chartRubros") && typeof Chart !== "undefined") {
+        new Chart(document.getElementById("chartRubros"), {
+            type: "doughnut",
+            data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, borderWidth: 2, borderColor: "#fff" }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "right", labels: { padding: 15, usePointStyle: true } } } }
+        });
+    }
+    // Mapa satélite con polígono Pantanillo
+    var mapIdx = document.getElementById("mapParqueIndex");
+    if (mapIdx && typeof ParqueLeaflet !== "undefined") {
+        var m = L.map("mapParqueIndex", { zoomControl: false, attributionControl: true });
+        ParqueLeaflet.addSatelliteLayer(m);
+        var poly = ParqueLeaflet.addParquePolygon(m);
+        m.fitBounds(poly.getBounds(), { padding: [30, 30] });
+        ParqueLeaflet.freezeMap(m);
+    }
+});
+</script>';
+require_once BASEPATH . '/includes/footer.php';
+?>

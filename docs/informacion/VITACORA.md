@@ -1,0 +1,318 @@
+# Bitácora de Trabajo — Parque Industrial de Catamarca
+
+> Proyecto: Portal PHP para el Parque Industrial de Catamarca (Argentina)  
+> Repo original: https://github.com/davinic7/parque_industrial  
+> Deploy en producción: https://parque-industrial.onrender.com/  
+> Fecha de inicio: 2026-05-27  
+> Responsable: fdeluque74@gmail.com
+
+---
+
+## Contexto del Proyecto
+
+Portal web con tres interfaces distintas:
+- **Sitio público** (`public/*.php`) — visible para visitantes
+- **Dashboard empresa** (`public/empresa/`) — panel privado de cada empresa
+- **Panel ministerio** (`public/ministerio/`) — administración general
+
+Stack: PHP puro (sin framework), MySQL/MariaDB, Bootstrap 5, Leaflet.js, sin bundler.
+
+### Credenciales de demo (base de datos seed)
+| Rol | Email | Password (hash `$2y$10$F1X4mm...`) |
+|-----|-------|------|
+| admin | admin@parqueindustrial.gob.ar | (desconocida — hash en SQL) |
+| ministerio | ministerio@catamarca.gob.ar | (misma hash) |
+| empresa demo | empresa@demo.com | (misma hash) |
+
+---
+
+## FASE 1 — Análisis y Setup Local (2026-05-27)
+
+### Bugs Críticos Encontrados
+
+#### 1. BASE DE DATOS — Tabla `banners_home` no existe
+- **Archivo**: `public/index.php:38`
+- **Problema**: El código hace `SELECT 1 FROM banners_home LIMIT 1` pero la tabla creada en el schema se llama `banners`.
+- **Impacto**: El carrusel de la home nunca muestra banners (siempre cae en el bloque `catch`).
+- **Fix pendiente**: Renombrar la consulta a `banners` y adaptar la query al schema real.
+
+#### 2. BASE DE DATOS — Duplicados masivos en `rubros`
+- **Archivo**: `parque_industrial.sql` (root)
+- **Problema**: Los rubros con IDs 20-25, 26-31, 32-37, y 38-43 son exactamente los mismos datos (`PLÁSTICOS`, `QUÍMICA`, `AGROINDUSTRIA`, `MOTOCICLETAS`, `FIBRA DE VIDRIO`, `DULCES`) repetidos 4 veces por múltiples importaciones fallidas.
+- **Impacto**: Los filtros por rubro muestran duplicados, estadísticas infladas.
+- **Fix pendiente**: Limpiar duplicados, agregar constraint UNIQUE en `nombre`.
+
+#### 3. BASE DE DATOS — Duplicados en `empresas`
+- **Archivo**: `parque_industrial.sql` (root)
+- **Problema**: Las empresas aparecen dos veces. IDs 1-21 son el primer batch, luego IDs 22-99 repiten las mismas empresas (con diferentes IDs pero mismo `usuario_id`). Por ejemplo, ALGODONERA DEL VALLE aparece como id=2 y id=23, ambas con `usuario_id=102`.
+- **Impacto**: Cada usuario de empresa ve dos registros de "su" empresa.
+- **Fix pendiente**: Eliminar el primer batch de registros (1-21) o el segundo.
+
+#### 4. BASE DE DATOS — Columna `token_expira` vs `token_expiracion`
+- **Archivo**: `parque_industrial.sql` (schema principal) vs `config/database.sql` (schema viejo)
+- **Problema**: El schema real en `parque_industrial.sql` usa `token_expira` en la tabla `usuarios`, pero el schema alternativo `config/database.sql` usa `token_expiracion`. Auth.php puede referirse a la columna incorrecta.
+- **Fix pendiente**: Verificar qué columna usa `includes/auth.php` y unificar.
+
+#### 5. BASE DE DATOS — Desconexión entre `empresas.rubro` y tabla `rubros`
+- **Problema**: `empresas.rubro` es `varchar(100)` con texto libre (ej: `'TEXTIL'`, `'CONSTRUCCIÓN'`) sin FK a la tabla `rubros`. Los valores en empresas están en MAYÚSCULAS mientras que `rubros` tiene case mixto (`'Textil'`, `'Construcción'`).
+- **Impacto**: Los filtros por rubro no funcionan bien, las estadísticas por rubro son incorrectas.
+- **Fix pendiente**: Normalizar case en `empresas.rubro` O agregar FK a `rubros.id`.
+
+#### 6. TABLA USUARIOS — columnas faltantes para activación de cuenta
+- **Archivos**: `includes/auth.php:78`, `public/activar-cuenta.php`, `public/ministerio/nueva-empresa.php`
+- **Problema**: `auth.php::registerEmpresaPending()` hace INSERT con columnas `token_activacion`, `token_activacion_expira`, `email_verificado` que no existían en el schema de `usuarios`.
+- **Impacto**: Crear empresa nueva desde el ministerio falla con error SQL.
+- **Fix aplicado**: `database/cleanup_seed.sql` agrega las 3 columnas con ALTER TABLE.
+
+#### 7. TABLAS FALTANTES — `login_attempts` y `password_reset_requests`
+- **Problema**: Auth.php usa estas tablas para bloqueo por IP y rate limiting de recuperación de contraseña, pero no estaban en `parque_industrial.sql`.
+- **Impacto**: No es fatal (auth.php tiene try/catch), pero los bloqueos y límites no funcionan.
+- **Fix aplicado**: `database/cleanup_seed.sql` las crea correctamente.
+
+#### 8. ARCHIVOS REDUNDANTES / CONFLICTO DE SCHEMAS
+- `config/database.sql` — schema antiguo/draft que NO es el que se usa. Crea confusión.
+- `parque_industrial.sql` (en el ROOT) — dump de phpMyAdmin. Debería estar en `database/`.
+- `assets/css/estilos.css` — CSS duplicado, el CSS real está en `public/css/`.
+- Las tablas de migraciones 015-018 agregan columnas/tablas que NO están en el schema principal (`parque_industrial.sql`), por lo que hay que aplicarlas DESPUÉS de importar el schema base.
+
+#### 9. LÓGICA — Tabla `mensajes` obsoleta vs sistema v2
+- La migración `017_migrar_mensajes_a_v2.sql` refactoriza el sistema de mensajería pero el schema base en `parque_industrial.sql` todavía tiene la tabla `mensajes` original (sin las columnas nuevas del v2).
+- **Impacto**: Las páginas del centro de comunicaciones (`/empresa/comunicaciones.php`, `/ministerio/comunicaciones.php`) pueden fallar.
+
+---
+
+### Setup Local — Instrucciones definitivas
+
+**Prerequisitos:** PHP 8.2 (ya instalado) + Laragon (MySQL + phpMyAdmin).
+
+```
+# ORDEN DE IMPORTACIÓN (con MySQL de Laragon corriendo):
+# 1. Crear la DB en phpMyAdmin: http://localhost/phpmyadmin → "Nueva" → parque_industrial
+# 2. Importar el schema base:
+#    phpMyAdmin → parque_industrial → Importar → parque_industrial.sql (en la RAÍZ del proyecto)
+# 3. Importar el script de correcciones:
+#    phpMyAdmin → parque_industrial → Importar → database/cleanup_seed.sql
+# 4. Importar las migraciones del sistema de mensajería (en orden):
+#    database/015_mensajes_categoria.sql
+#    database/016_centro_comunicaciones.sql
+#    database/017_migrar_mensajes_a_v2.sql
+#    database/018_plantillas_respuesta.sql
+# 5. Correr el servidor PHP:
+#    (desde la raíz del proyecto, en PowerShell)
+#    php -S localhost:8080 -t public
+# 6. Abrir http://localhost:8080 en el browser
+```
+
+**Credenciales de acceso tras la importación:**
+| Rol | Email | Contraseña |
+|-----|-------|------------|
+| Admin | admin@parqueindustrial.gob.ar | admin123 |
+| Ministerio | ministerio@catamarca.gob.ar | admin123 |
+| Empresa demo | empresa@demo.com | admin123 |
+
+**Nota:** El `.env` ya está creado con la configuración correcta para Laragon.
+
+---
+
+## Trabajo Pendiente (Backlog)
+
+### Prioridad ALTA (bloquean funcionalidad básica) — COMPLETADO
+- [x] Crear `.env` local → `database/cleanup_seed.sql`
+- [x] Renombrar tabla `banners` → `banners_home` + agregar columnas `tipo`/`url_video` → `cleanup_seed.sql`
+- [x] Agregar columnas faltantes en `usuarios` (token_activacion, etc.) → `cleanup_seed.sql`
+- [x] Crear tablas faltantes `login_attempts`, `password_reset_requests` → `cleanup_seed.sql`
+- [x] Limpiar duplicados en `rubros` y `empresas` → `cleanup_seed.sql`
+- [x] Actualizar contraseñas de usuarios seed a "admin123" → `cleanup_seed.sql`
+- [x] Levantar el proyecto localmente en http://localhost:8080 (Laragon + `php -S localhost:8080 -t public`)
+- [x] Normalizar `empresas.rubro` a Title Case (78 filas actualizadas con BINARY comparison)
+- [x] Corregir label "Sectores" → "Rubros" en `public/mapa.php`
+- [x] Mejorar tile dashboard empresa: "1 Formularios pendientes" → "Pendiente / Declaración período"
+- [x] **Unificar toda la base de datos** → `database/parque_industrial_v2.sql` (ver Sesión 3)
+
+### Prioridad MEDIA (próximo a atacar)
+- [ ] **Re-importar la DB** con el nuevo archivo unificado (ver instrucciones debajo)
+- [ ] Probar flujo completo: crear empresa desde ministerio → activar cuenta → login empresa
+- [ ] Probar formularios dinámicos (crear formulario ministerio → empresa completa → ministerio revisa)
+- [ ] Probar publicaciones (empresa sube → ministerio aprueba → aparece en noticias públicas)
+- [ ] Probar banners (ministerio sube imagen → aparece en carrusel del home)
+- [ ] Probar export Excel y PDF desde gráficos/ministerio
+
+### Prioridad BAJA (mejoras UI/UX) — PARCIALMENTE COMPLETADO
+- [x] Aplicar skill `impeccable` — Design System v2 implementado (ver Sesión 2)
+- [ ] Revisar responsive en mobile
+- [ ] Mejorar empty states (noticias vacías, banners sin datos, etc.)
+
+### Prioridad MEDIA (afectan UX y datos)
+- [ ] Verificar y corregir columna `token_expira` en auth.php
+- [ ] Verificar que el sistema de mensajería v2 funcione tras la importación
+- [ ] Revisar si hay más referencias a tablas que no existen
+
+---
+
+## SESIÓN 3 — Unificación de Base de Datos (2026-05-27)
+
+### Objetivo
+Unificar todos los archivos SQL (schema base + cleanup + migraciones 015-018) en un **único archivo importable** sin pasos adicionales.
+
+### Resultado
+Creado: **`database/parque_industrial_v2.sql`**
+
+| Característica | Detalle |
+|---|---|
+| Tablas | 22 tablas (+ 3 heredadas de formularios_dinamicos con inline FK) |
+| Vistas | 2 (`v_empresas_completas`, `v_estadisticas_generales`) |
+| Seed users | 3 admin + 78 empresas (todos con `admin123`) |
+| Seed empresas | ID 1 (demo) + IDs 22-99 (sin duplicados IDs 2-21) |
+| Seed rubros | 23 rubros, sin duplicados, Title Case |
+| Migraciones integradas | 015 (categoria en mensajes), 016 (centro comunicaciones), 017 (index ux_conv_referencia), 018 (plantillas_respuesta) |
+| Correcciones integradas | banners_home, token_activacion, login_attempts, password_reset_requests, normalización de rubros |
+
+### Instrucción de re-importación (desde cero)
+```sql
+-- Opción A: CLI
+mysql -u root -p < database/parque_industrial_v2.sql
+
+-- Opción B: phpMyAdmin
+-- Ir a "Bases de datos" → si existe parque_industrial, eliminarla
+-- Luego: Nueva → "parque_industrial" → Importar → database/parque_industrial_v2.sql
+-- El archivo ya incluye CREATE DATABASE + USE, así que no hace falta crearla antes.
+```
+
+### Archivos obsoletos (NO borrar, guardar como referencia histórica)
+- `parque_industrial.sql` (root) — dump original phpMyAdmin con bugs
+- `database/cleanup_seed.sql` — correcciones aplicadas al seed original
+- `database/015_mensajes_categoria.sql` — migración integrada en v2
+- `database/016_centro_comunicaciones.sql` — migración integrada en v2
+- `database/017_migrar_mensajes_a_v2.sql` — data migration (vacía en seed; no aplica)
+- `database/017b_migrar_mensajes_phpmyadmin.sql` — ídem
+- `database/018_plantillas_respuesta.sql` — migración integrada en v2
+- `config/database.sql` — schema antiguo/draft, no usar
+
+### Prioridad BAJA (mejoras visuales y limpieza)
+- [ ] Eliminar `config/database.sql` (obsoleto)
+- [ ] Eliminar o mover `assets/css/estilos.css`
+- [ ] Revisar `test_pantanillo.js` — determinar si los tests son útiles o están desactualizados
+- [ ] Revisar `.gitignore` para asegurar que `.env` y `logs/` estén excluidos
+- [ ] Mejorar UI de páginas identificadas como incompletas
+
+---
+
+## Skills / Herramientas Disponibles
+
+| Skill | Uso en este proyecto |
+|-------|---------------------|
+| `impeccable` | Auditar y mejorar UI/UX de las interfaces públicas y dashboards |
+| `ui-ux-pro-max` | Redesign más profundo con componentes Bootstrap / Tailwind |
+| `pdf` | Generar reportes PDF desde el panel ministerio |
+| `xlsx` | Exportar datos de empresas a Excel |
+| `docx` | Generar documentos Word para comunicados/formularios |
+| `pptx` | Presentaciones del estado del parque (no prioritario) |
+| `verify` | Verificar que un fix funciona en el navegador |
+| `run` | Levantar y ver el proyecto en el browser |
+| `code-review` | Revisar PRs o diffs antes de deployar |
+| `security-review` | Auditar seguridad del código PHP |
+| `claude-api` | Si se agrega IA (chatbot, procesamiento de formularios) |
+
+### Skills sugeridas para instalar
+
+| Tipo de skill | Por qué sería útil |
+|--------------|-------------------|
+| **MySQL / Database Admin** | Para ejecutar queries de limpieza, diff de schemas, generar migrations |
+| **Docker Compose generator** | Para crear docker-compose.yml con PHP + MySQL + phpMyAdmin |
+| **PHP linter / static analysis** | Para detectar errores de tipo, variables no definidas, código muerto |
+| **Diff / merge de SQL schemas** | Para unificar `parque_industrial.sql` con las migraciones 015-018 sin conflictos |
+| **Playwright / E2E test runner** | Ya tiene `test_pantanillo.js`, podría expandirse para validar flujos críticos |
+
+---
+
+## Log de Sesiones
+
+### Sesión 1 — 2026-05-27
+**Setup y corrección de bugs críticos**
+- Exploración completa del repositorio, identificación de 9 bugs críticos
+- Creado `.env` (Laragon + PHP built-in server)
+- Creado `database/cleanup_seed.sql` — todos los fixes de schema en un solo archivo
+- Creado `database/fix_fk_empresa.sql` — fix para error FK en import phpMyAdmin
+- Creado `database/017b_migrar_mensajes_phpmyadmin.sql` — versión sin CTEs para phpMyAdmin
+- **Proyecto corriendo en http://localhost:8080** — sin errores PHP
+- Verificadas todas las interfaces: home, login, dashboard ministerio, dashboard empresa, mapa, estadísticas, gráficos, noticias, directorio
+- Normalizado `empresas.rubro` a Title Case — 78 filas (fix binario en MySQL)
+- Corregido label "Sectores" → "Rubros" en mapa
+- Mejorado tile dashboard empresa: "1 Formularios pendientes" → "Pendiente / Declaración período"
+
+**Archivos creados/modificados:**
+- `.env` (nuevo)
+- `database/cleanup_seed.sql` (nuevo)
+- `database/fix_fk_empresa.sql` (nuevo)
+- `database/017b_migrar_mensajes_phpmyadmin.sql` (nuevo)
+- `.claude/launch.json` (nuevo)
+- `public/mapa.php` (label fix)
+- `public/empresa/dashboard.php` (tile UX fix)
+
+**Próximo paso**: Probar flujos completos (crear empresa, formularios, publicaciones, banners)
+
+---
+
+### Sesión 2 — 2026-05-27
+**Design System v2 — "La Planta" (impeccable skill)**
+
+**Objetivo**: Aplicar rediseño completo UI/UX con la skill `impeccable`. Registro mixto: brand para el sitio público, product para los dashboards. Personalidad "Industrial moderno" — territorial, sólido, contemporáneo. Anti-referencia: "web de municipio viejo".
+
+**Archivos creados:**
+- `PRODUCT.md` (nuevo) — contexto de producto, usuarios, tono, paleta, principios
+- `DESIGN.md` (nuevo) — sistema de diseño completo: tokens, tipografía, elevación, componentes, Do's & Don'ts
+
+**Archivos modificados:**
+- `includes/header.php` — fuente Inter añadida (Inter + Montserrat en lugar de Roboto + Montserrat)
+- `public/css/styles.css` — **reescritura completa** del sistema de diseño:
+  - Paleta nueva: navy profundo `#1b3a5c` + ámbar terracota `#c4601a` + neutros cálidos warm stone `#f7f4f0`
+  - Overrides Bootstrap CSS vars (`--bs-primary`, `--bs-body-bg`, etc.)
+  - Navbar: sólido, sin gradiente diagonal, active = background tint (no border-bottom stripe)
+  - Stat cards: ícono plano en stone-bg (no círculo con gradiente SaaS)
+  - Botón primario: ámbar (no azul genérico)
+  - `.dashboard-card`: eliminado `border-left: 4px solid` (BANNED) → solo sombra
+  - `.sidebar-menu a.active`: eliminado `border-left: 3px solid` (BANNED) → background tint
+  - Dato impacto strip: sólido ámbar (no degradado)
+  - Sección headers: alineación izquierda, divisor ámbar
+  - Footer: limpio, sin gradiente
+  - Body background: `#f7f4f0` (warm stone, nunca blanco puro)
+- `public/css/empresa-app.css` — actualización del panel empresa/ministerio:
+  - Paleta actualizada a nueva paleta navy/ámbar
+  - Sidebar: fondo sólido `#0f2438` (sin gradiente)
+  - `.empresa-sidebar-nav a.active`: eliminado `border-left: 3px solid #27ae60` (BANNED) → background tint
+  - Action cards: colores sólidos (sin gradientes)
+  - Stat tiles: Montserrat con tracking negativo, labels uppercase
+- `public/login.php` — rediseño completo:
+  - Fondo sólido navy oscuro `#0f2438` (no gradiente)
+  - Branding "Parque Industrial / CATAMARCA" con jerarquía correcta
+  - Botón "Ingresar": ámbar (`#c4601a`)
+  - Inputs con bordes `#d9d3ca` y focus navy
+
+**Cambios visuales clave:**
+| Antes | Después |
+|-------|---------|
+| Navbar con `linear-gradient(135deg, ...)` | Navbar fondo sólido `#0f2438` |
+| Botón "Ingresar" verde pill | Botón "Ingresar" ámbar pill |
+| Active nav link: border-bottom verde | Active nav link: background tint |
+| Stat card icons: círculo gradiente azul | Stat card icons: cuadrado plano stone-bg |
+| Dashboard cards: border-left 4px acento | Dashboard cards: sin stripe, solo sombra |
+| Sidebar active: border-left 3px verde | Sidebar active: background tint |
+| Body bg: `#f8f9fa` (gris Bootstrap) | Body bg: `#f7f4f0` (warm stone) |
+| Action cards: gradientes diagonales | Action cards: colores sólidos |
+| bg-primary (Bootstrap azul #0d6efd) | bg-primary (nuestro navy #1b3a5c) |
+| Login: gradiente azul + botón azul | Login: navy oscuro + botón ámbar |
+| Botón "Ver perfil": azul primario | Botón "Ver perfil": ámbar |
+| Rubro badges: azul primario | Rubro badges: ámbar |
+| Placeholders logo empresa: gris frío | Placeholders logo empresa: warm stone |
+
+**Estado post-sesión:**
+- Sitio público: home, empresas, mapa, footer — ✅ rediseñados
+- Dashboard empresa: sidebar, tiles, action cards, timeline — ✅ rediseñados
+- Dashboard ministerio: sidebar, stat tiles, acciones rápidas — ✅ rediseñados
+- Login: ✅ rediseñado
+
+**Próximo paso**: Probar flujos completos (crear empresa, formularios, publicaciones, banners) + dar lista de funciones a corregir/implementar.
+
+---
+
+*Este archivo se actualiza en cada sesión de trabajo. Usarlo como punto de entrada en nuevos chats.*
