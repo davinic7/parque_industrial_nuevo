@@ -1,10 +1,13 @@
 <?php
 /**
- * Editar contenido de la página Nosotros - Ministerio
+ * Editar contenido de la página Nosotros - redirige al hub CMS unificado
  */
 require_once __DIR__ . '/../../config/config.php';
 
 if (!$auth->requireRole(['ministerio', 'admin'], PUBLIC_URL . '/login.php')) exit;
+
+// Redirigir al hub CMS que consolida toda la edición del sitio público
+redirect('sitio-publico.php?tab=el_parque');
 
 $page_title = 'Editar página Nosotros';
 $db = getDB();

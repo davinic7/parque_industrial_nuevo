@@ -24,11 +24,14 @@ $coms_activo = FEATURE_CENTRO_COMS && coms_schema_disponible();
 $badge_notif = 0;
 $badge_msg   = 0;
 $badge_coms  = 0;
+$presentacion_form_id  = null;
+$presentacion_pendiente = false;
 try {
     $db_layout = getDB();
+    $empresa_id_layout = $_SESSION['empresa_id'] ?? null;
     if ($user_id > 0) {
         if ($coms_activo) {
-            $badge_coms = coms_contar_no_leidos('empresa', $_SESSION['empresa_id'] ?? null);
+            $badge_coms = coms_contar_no_leidos('empresa', $empresa_id_layout);
         } else {
             $st = $db_layout->prepare('SELECT COUNT(*) FROM notificaciones WHERE usuario_id = ? AND leida = 0');
             $st->execute([$user_id]);
@@ -36,6 +39,17 @@ try {
             $st = $db_layout->prepare('SELECT COUNT(*) FROM mensajes WHERE destinatario_id = ? AND leido = 0');
             $st->execute([$user_id]);
             $badge_msg = (int) $st->fetchColumn();
+        }
+        if ($empresa_id_layout) {
+            $stPf = $db_layout->prepare("SELECT id FROM formularios_dinamicos WHERE titulo LIKE 'Presentaci%' AND estado = 'publicado' LIMIT 1");
+            $stPf->execute();
+            $pfRow = $stPf->fetch();
+            if ($pfRow) {
+                $presentacion_form_id = (int) $pfRow['id'];
+                $stPfR = $db_layout->prepare("SELECT id FROM formulario_respuestas WHERE formulario_id = ? AND empresa_id = ? AND estado = 'enviado' LIMIT 1");
+                $stPfR->execute([$presentacion_form_id, $empresa_id_layout]);
+                $presentacion_pendiente = !$stPfR->fetch();
+            }
         }
     }
 } catch (Throwable $e) {
@@ -77,6 +91,13 @@ $nav = static function (string $key) use ($empresa_nav): string {
         <nav class="empresa-sidebar-nav">
             <a href="dashboard.php" class="<?= $nav('dashboard') ?>"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
             <a href="formularios.php" class="<?= $nav('formularios') ?>"><i class="fa-solid fa-file-lines"></i> Mis declaraciones</a>
+            <a href="mis-datos.php" class="<?= $nav('mis-datos') ?>"><i class="fa-solid fa-chart-line"></i> Mis datos</a>
+            <?php if ($presentacion_form_id): ?>
+            <a href="formulario_presentacion.php" class="<?= $nav('presentacion') ?>">
+                <i class="fa-solid fa-clipboard-list"></i> Presentación
+                <?php if ($presentacion_pendiente): ?><span class="badge bg-warning text-dark rounded-pill ms-auto" style="font-size:.65rem;">Pendiente</span><?php endif; ?>
+            </a>
+            <?php endif; ?>
             <a href="publicaciones.php" class="<?= $nav('publicaciones') ?>"><i class="fa-solid fa-bullhorn"></i> Publicaciones</a>
             <?php if ($coms_activo): ?>
             <a href="comunicaciones.php" class="<?= $nav('comunicaciones') ?>"><i class="fa-solid fa-comments"></i> Comunicaciones <span class="badge bg-danger rounded-pill<?= $badge_coms === 0 ? ' d-none' : '' ?>" id="coms-badge-sidebar"><?= $badge_coms > 99 ? '99+' : $badge_coms ?></span></a>

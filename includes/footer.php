@@ -1,15 +1,23 @@
     <!-- Footer -->
     <footer class="footer">
         <div class="container">
-            <?php if (empty($compact_footer)): ?>
+            <?php if (empty($compact_footer)):
+                $f_desc     = get_config('footer_descripcion', 'Impulsando el desarrollo industrial de la provincia.');
+                $f_email    = get_config('sitio_email',     'contacto@parqueindustrial.gob.ar');
+                $f_tel      = get_config('sitio_telefono',  '(0383) 4123456');
+                $f_dir      = get_config('sitio_direccion', 'San Fernando del Valle de Catamarca');
+                $f_fb       = get_config('redes_facebook',  '');
+                $f_ig       = get_config('redes_instagram', '');
+                $f_tw       = get_config('redes_twitter',   '');
+            ?>
             <div class="row">
                 <div class="col-lg-4 mb-4">
                     <h5>Parque Industrial de Catamarca</h5>
-                    <p class="mb-3">Impulsando el desarrollo industrial de la provincia.</p>
+                    <p class="mb-3"><?= e($f_desc) ?></p>
                     <div class="d-flex gap-3">
-                        <a href="#" class="fs-5"><i class="bi bi-facebook"></i></a>
-                        <a href="#" class="fs-5"><i class="bi bi-instagram"></i></a>
-                        <a href="#" class="fs-5"><i class="bi bi-twitter-x"></i></a>
+                        <?php if ($f_fb): ?><a href="<?= e($f_fb) ?>" target="_blank" rel="noopener" class="fs-5" aria-label="Facebook"><i class="bi bi-facebook"></i></a><?php else: ?><span class="fs-5 text-muted" title="Sin Facebook configurado"><i class="bi bi-facebook"></i></span><?php endif; ?>
+                        <?php if ($f_ig): ?><a href="<?= e($f_ig) ?>" target="_blank" rel="noopener" class="fs-5" aria-label="Instagram"><i class="bi bi-instagram"></i></a><?php else: ?><span class="fs-5 text-muted" title="Sin Instagram configurado"><i class="bi bi-instagram"></i></span><?php endif; ?>
+                        <?php if ($f_tw): ?><a href="<?= e($f_tw) ?>" target="_blank" rel="noopener" class="fs-5" aria-label="Twitter/X"><i class="bi bi-twitter-x"></i></a><?php else: ?><span class="fs-5 text-muted" title="Sin Twitter configurado"><i class="bi bi-twitter-x"></i></span><?php endif; ?>
                     </div>
                 </div>
                 <div class="col-lg-2 col-md-4 mb-4">
@@ -24,9 +32,9 @@
                 <div class="col-lg-3 col-md-4 mb-4">
                     <h5>Contacto</h5>
                     <ul class="list-unstyled">
-                        <li class="mb-2"><i class="bi bi-geo-alt me-2"></i>San Fernando del Valle de Catamarca</li>
-                        <li class="mb-2"><i class="bi bi-telephone me-2"></i>(0383) 4123456</li>
-                        <li class="mb-2"><i class="bi bi-envelope me-2"></i>contacto@parqueindustrial.gob.ar</li>
+                        <?php if ($f_dir): ?><li class="mb-2"><i class="bi bi-geo-alt me-2"></i><?= e($f_dir) ?></li><?php endif; ?>
+                        <?php if ($f_tel): ?><li class="mb-2"><i class="bi bi-telephone me-2"></i><?= e($f_tel) ?></li><?php endif; ?>
+                        <?php if ($f_email): ?><li class="mb-2"><i class="bi bi-envelope me-2"></i><?= e($f_email) ?></li><?php endif; ?>
                     </ul>
                 </div>
                 <div class="col-lg-3 col-md-4 mb-4">

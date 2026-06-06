@@ -210,6 +210,11 @@ $extra_head = '<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/f
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css">';
 require_once BASEPATH . '/includes/empresa_layout_header.php';
 ?>
+        <div class="mb-3">
+            <a href="formularios.php" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Volver a mis formularios
+            </a>
+        </div>
         <h1 class="h3 mb-4"><?= e($page_title) ?></h1>
 
         <?php if ($mensaje): ?>

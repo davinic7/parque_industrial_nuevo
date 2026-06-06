@@ -189,7 +189,7 @@ mysql -u root -p < database/parque_industrial_v2.sql
 - `config/database.sql` — schema antiguo/draft, no usar
 
 ### Prioridad BAJA (mejoras visuales y limpieza)
-- [ ] Eliminar `config/database.sql` (obsoleto)
+- [x] Eliminar `config/database.sql` (ya no existe)
 - [ ] Eliminar o mover `assets/css/estilos.css`
 - [ ] Revisar `test_pantanillo.js` — determinar si los tests son útiles o están desactualizados
 - [ ] Revisar `.gitignore` para asegurar que `.env` y `logs/` estén excluidos
@@ -314,5 +314,132 @@ mysql -u root -p < database/parque_industrial_v2.sql
 **Próximo paso**: Probar flujos completos (crear empresa, formularios, publicaciones, banners) + dar lista de funciones a corregir/implementar.
 
 ---
+
+---
+
+## SESIÓN 4 — 2026-06-05
+**Panel empresa: onboarding, formularios, métricas y comunicaciones**
+
+### Bugs corregidos esta sesión
+
+#### BUG CRÍTICO — `perfil.php`: el UPDATE nunca ejecutaba
+- **Archivo**: `public/empresa/perfil.php` líneas 63-105
+- **Problema**: El bloque `UPDATE empresas SET...` estaba dentro del `else` de `if (empty($field_errors))`, es decir, solo corría cuando HAY errores de validación — y dentro de ese else chequeaba `if (empty($field_errors))` que nunca podía ser verdadero.
+- **Efecto**: Los cambios de perfil nunca se guardaban en la BD. Sin mensaje de éxito visible.
+- **Fix**: Movido el bloque UPDATE fuera del if/else, con su propio `if (empty($field_errors))`.
+
+#### BUG MENOR — `dashboard.php`: campo `ubicacion` inexistente en cálculo de perfil
+- **Archivo**: `public/empresa/dashboard.php` línea 25
+- **Problema**: `$campos_perfil` incluía `'ubicacion'` pero la columna en la tabla `empresas` que llena el formulario se llama `'direccion'`. El campo `ubicacion` lo setea el ministerio (zona del parque), no la empresa desde su perfil.
+- **Efecto**: El % de perfil completo siempre era 1 punto más bajo de lo real.
+- **Fix**: Cambiado `'ubicacion'` → `'direccion'` en el array `$campos_perfil`.
+
+### Estado de bugs históricos del VITACORA (verificado 2026-06-05)
+Todos los bugs de sesiones anteriores confirmados resueltos en la BD actual:
+- ✅ banners_home: tabla existe, código correcto, tabla vacía (carrusel vacío = normal)
+- ✅ Duplicados rubros: 23 rubros, sin duplicados
+- ✅ Duplicados empresas: 2 registros, sin duplicados
+- ✅ token_expira: columna correcta en usuarios, auth.php la usa bien
+- ✅ Tablas faltantes: login_attempts, password_reset_requests, notificaciones — todas existen
+- ✅ config/database.sql: eliminado (ya no existe)
+
+### Funcionalidades nuevas implementadas
+
+#### Onboarding empresa
+- Card "Primeros pasos" en dashboard con checklist (perfil + formulario de presentación)
+- Se oculta sola cuando ambos pasos están completos
+- Link "Presentación" en sidebar (aparece solo si el ministerio creó ese formulario dinámico)
+
+#### Historial de formularios dinámicos
+- Nueva sección "Formularios del Ministerio" en `empresa/formularios.php`
+- Muestra formularios asignados (pendiente/borrador/enviado) con acciones Responder/Continuar/Ver
+- Botón "← Volver a mis formularios" en `formulario_dinamico.php`
+
+#### Métricas empresa (`mis-datos.php`)
+- Nueva página con Chart.js: empleados (línea), género (donut), consumos (barras), capacidad (barras), producción (tabla), comercio exterior (cards), CO₂ (línea)
+- Solo muestra datos de declaraciones enviadas/aprobadas
+- Link "Mis datos" en sidebar empresa
+
+#### Config métricas ministerio (`empresa-metricas.php`)
+- Nueva página en panel ministerio (sidebar: Contenido del sitio → Métricas empresa)
+- 9 checkboxes para elegir qué bloques ve cada empresa
+- Guardado en `configuracion_sitio` — mismo patrón que estadísticas públicas
+
+---
+
+## SESIÓN 5 — QA Final Completo (2026-06-06)
+
+### Objetivo
+Testeo visual y funcional end-to-end del portal completo antes de la entrega. Recorrido ordenado: sitio público → panel empresa → panel ministerio.
+
+### Mapa de archivos verificado
+- Archivo huérfano confirmado: `public/css/empresa-inbox.css` — solo referenciado en docs, no incluido por ningún PHP.
+- `public/parque.php` y `public/nosotros.php` — son redirects 301 intencionales a `el-parque.php` (SEO).
+- `public/ministerio/nosotros-editar.php` — redirige a `sitio-publico.php?tab=el_parque`; código muerto debajo del redirect (sin impacto).
+- Contraseña de todos los usuarios seed: **`admin123`**
+
+### Bugs encontrados y corregidos
+
+#### Bug 1 — Eje Y con decimales en gráfico "Empresas por Rubro"
+- **Archivo**: `public/ministerio/dashboard.php:201`
+- **Problema**: Chart.js mostraba `0.5` en el eje Y cuando solo había 1 empresa (valor entero pequeño).
+- **Fix**: Agregado `ticks: { precision: 0, stepSize: 1 }` a la config del eje Y.
+
+#### Bug 2 — Dropdown "Enviados (pendientes)" truncado
+- **Archivo**: `public/ministerio/formularios.php:120`
+- **Problema**: Columna `col-md-2` demasiado estrecha; el texto "Enviados (pendientes)" aparecía cortado como "Enviados (pend".
+- **Fix**: Cambiado a `col-md-3`.
+
+#### Bug 3 — Tildes faltantes en "conversación"
+- **Archivo**: `includes/partials/comunicaciones_panel.php`
+- **Problema**: Tres ocurrencias de "conversacion" sin tilde (botón "Nueva conversacion", estado vacío, título del modal).
+- **Fix**: Corregido a "conversación" en las 3 apariciones.
+
+#### Bug 4 — Input de logo truncado ("Sin a...ados")
+- **Archivo**: `public/empresa/perfil.php:348`
+- **Problema**: `<input type="file" class="form-control">` en columna estrecha mostraba el texto nativo del browser "Sin archivos seleccionados" recortado a "Sin a...ados".
+- **Fix**: Reemplazado por botón custom "Seleccionar logo" (oculta el input nativo) + `<span id="logoFileName">` que se actualiza vía JS al seleccionar archivo. La preview de imagen sigue funcionando.
+
+#### Bug 5 — Plural incorrecto en banner de impacto del home
+- **Archivo**: `public/index.php:96`
+- **Problema**: El texto siempre decía "N rubros industriales" en plural, incluso cuando N=1 ("1 rubros industriales"). Ídem para "empleos directos".
+- **Fix**: Lógica singular/plural: `1 rubro industrial` / `N rubros industriales`; `1 empleo directo` / `N empleos directos`.
+
+### Páginas verificadas sin bugs
+
+**Sitio público:**
+- `index.php` — hero, KPIs, banner impacto, grid de empresas, footer ✅
+- `presentar-proyecto.php` — formulario público completo con breadcrumb ✅
+- `el-parque.php` — carga con contenido y mapa ✅
+
+**Panel empresa:**
+- `empresa/dashboard.php` — KPIs, acciones rápidas, banner de empresa suspendida ✅
+- `empresa/perfil.php` — formulario de edición con logo custom, galería ✅
+- `empresa/formularios.php` — declaración jurada completa (secciones: personal, capacidad, consumos, huella carbono) ✅
+- `empresa/publicaciones.php` — estado vacío con botón "Crear publicación" ✅
+- `empresa/comunicaciones.php` — Centro de Comunicaciones con lista de conversaciones ✅
+
+**Panel ministerio:**
+- `ministerio/dashboard.php` — 6 KPIs, acciones rápidas, gráfico barras (eje Y entero), mini mapa Leaflet, actividad reciente ✅
+- `ministerio/formularios.php` — tabla con filtros (dropdown "Enviados (pendientes)" completo), modales detalle y revisión ✅
+- `ministerio/comunicaciones.php` — lista de conversaciones con tildes correctas ✅
+- `ministerio/sitio-publico.php` — 3 tabs (Inicio, El Parque, Contacto) funcionando ✅
+- `ministerio/publicaciones.php` — 2 tabs (Contenido propio, Revisión empresas) ✅
+- `ministerio/empresa-metricas.php` — 9 bloques configurables con altura uniforme (h-100) ✅
+- `ministerio/graficos.php` — gráficos con datos de seed, mapa de calor Leaflet ✅
+- `ministerio/exportar.php` — botones Excel/CSV para directorio y declaraciones ✅
+- `ministerio/reporte.php` — redirige con flash "No hay períodos con datos declarados" cuando no hay datos ✅
+
+### Comportamientos esperados (no son bugs)
+- Gráficos vacíos ("Evolución de empleo", "Consumos por rubro", "Huella de carbono") — el seed no tiene declaraciones con datos de consumo.
+- Banner "Su empresa ha sido suspendida temporalmente" en dashboard empresa demo — el seed crea la empresa en estado `suspendida`.
+- `ministerio/reporte.php` redirige al dashboard — correcto cuando no hay períodos declarados.
+
+### Archivos modificados en esta sesión
+- `public/ministerio/dashboard.php` — fix eje Y Chart.js
+- `includes/partials/comunicaciones_panel.php` — fix tildes "conversación"
+- `public/ministerio/formularios.php` — fix ancho columna dropdown
+- `public/empresa/perfil.php` — fix input logo custom
+- `public/index.php` — fix plural singular rubros/empleados
 
 *Este archivo se actualiza en cada sesión de trabajo. Usarlo como punto de entrada en nuevos chats.*

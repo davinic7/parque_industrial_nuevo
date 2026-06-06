@@ -45,6 +45,10 @@ $contacto_dir      = get_config('nosotros_contacto_direccion', "Parque Industria
 $contacto_email    = get_config('nosotros_contacto_email',    'parqueindustrial@catamarca.gob.ar');
 $contacto_tel      = get_config('nosotros_contacto_telefono', '(0383) 4-XXXXXX');
 
+$ubicacion_dir      = get_config('nosotros_ubicacion_direccion', 'RN 38, El Pantanillo');
+$ubicacion_localidad = get_config('nosotros_ubicacion_localidad', 'San Fernando del Valle de Catamarca');
+$ubicacion_provincia = get_config('nosotros_ubicacion_provincia', 'Catamarca, Argentina');
+
 $servicios_default = [
     ['icon' => 'bi-lightning-charge', 'titulo' => 'Energía Eléctrica',  'desc' => 'Red de media y baja tensión con capacidad para la demanda industrial.'],
     ['icon' => 'bi-droplet',          'titulo' => 'Agua Potable',        'desc' => 'Red de agua potable y sistema de pozos para abastecimiento continuo.'],
@@ -223,9 +227,9 @@ require_once BASEPATH . '/includes/header.php';
             <div class="col-lg-4 d-flex flex-column gap-4">
                 <div class="info-card">
                     <h5><i class="bi bi-geo-alt me-2"></i>Ubicación</h5>
-                    <p class="mb-1"><strong>Dirección:</strong> RN 38, El Pantanillo</p>
-                    <p class="mb-1"><strong>Localidad:</strong> San Fernando del Valle de Catamarca</p>
-                    <p class="mb-0"><strong>Provincia:</strong> Catamarca, Argentina</p>
+                    <p class="mb-1"><strong>Dirección:</strong> <?= e($ubicacion_dir) ?></p>
+                    <p class="mb-1"><strong>Localidad:</strong> <?= e($ubicacion_localidad) ?></p>
+                    <p class="mb-0"><strong>Provincia:</strong> <?= e($ubicacion_provincia) ?></p>
                 </div>
                 <div class="info-card">
                     <h5><i class="bi bi-grid me-2"></i>Sectores industriales</h5>
@@ -271,7 +275,17 @@ require_once BASEPATH . '/includes/header.php';
         <div class="row g-5 align-items-center">
             <div class="col-lg-6">
                 <h2 class="h3 mb-4">Sobre el Parque Industrial</h2>
-                <div class="text-muted" style="line-height:1.8;"><?= nl2br(e($texto_parque)) ?></div>
+                <div class="text-muted" style="line-height:1.8;">
+                    <?php
+                    // Si contiene etiquetas HTML (guardado por el editor Quill), renderizar directo.
+                    // Si es texto plano (legado), aplicar nl2br.
+                    if ($texto_parque !== '' && strip_tags($texto_parque) !== $texto_parque) {
+                        echo $texto_parque;
+                    } else {
+                        echo nl2br(e($texto_parque));
+                    }
+                    ?>
+                </div>
             </div>
             <div class="col-lg-6">
                 <div class="row g-3 sobre-stats">

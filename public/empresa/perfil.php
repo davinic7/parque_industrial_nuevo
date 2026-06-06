@@ -60,6 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $field_errors['email_contacto'] = 'El email de contacto no es válido';
                 }
 
+                // Procesar logo si no hay errores de validación previos
                 if (empty($field_errors)) {
                     $logo_filename = $datos_anteriores['logo'];
                     if (isset($_FILES['logo']) && $_FILES['logo']['error'] === UPLOAD_ERR_OK) {
@@ -71,37 +72,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
                     }
                 } else {
-                    // Si hay errores de validación pero el usuario subió un logo nuevo,
-                    // el archivo NO se guarda (lo cual es correcto). Avisamos al usuario para que
-                    // sepa que debe volver a seleccionarlo: el navegador limpia el <input type="file">
-                    // tras el POST, lo cual confunde y hace pensar que se "borró" el logo.
+                    // Hay errores de validación: el logo NO se guarda.
+                    // Avisamos para que el usuario sepa que debe seleccionarlo de nuevo.
                     if (isset($_FILES['logo']) && $_FILES['logo']['error'] === UPLOAD_ERR_OK) {
                         $field_errors['logo_warning'] = 'El logo seleccionado no se guardó porque había errores en el formulario. Su logo actual permanece intacto. Vuelva a seleccionar el archivo cuando corrija los datos.';
                     }
+                }
 
-                    if (empty($field_errors)) {
-                        $cuit_guardar = ($cuit_digits !== '') ? format_cuit_argentina($cuit_digits) : '';
-                        $db->prepare("
-                            UPDATE empresas SET
-                                nombre = ?, razon_social = ?, cuit = ?, rubro = ?,
-                                descripcion = ?, direccion = ?,
-                                latitud = ?, longitud = ?,
-                                telefono = ?, email_contacto = ?, contacto_nombre = ?,
-                                sitio_web = ?, facebook = ?, instagram = ?, logo = ?
-                            WHERE id = ?
-                        ")->execute([
-                            $nombre, $razon_social, $cuit_guardar, $rubro,
-                            $descripcion, $direccion,
-                            $latitud, $longitud,
-                            $telefono, $email_contacto, $contacto_nombre,
-                            $sitio_web, $facebook, $instagram, $logo_filename,
-                            $empresa_id
-                        ]);
+                // Guardar solo si no hay ningún error (ni validación ni logo)
+                if (empty($field_errors)) {
+                    $cuit_guardar = ($cuit_digits !== '') ? format_cuit_argentina($cuit_digits) : '';
+                    $db->prepare("
+                        UPDATE empresas SET
+                            nombre = ?, razon_social = ?, cuit = ?, rubro = ?,
+                            descripcion = ?, direccion = ?,
+                            latitud = ?, longitud = ?,
+                            telefono = ?, email_contacto = ?, contacto_nombre = ?,
+                            sitio_web = ?, facebook = ?, instagram = ?, logo = ?
+                        WHERE id = ?
+                    ")->execute([
+                        $nombre, $razon_social, $cuit_guardar, $rubro,
+                        $descripcion, $direccion,
+                        $latitud, $longitud,
+                        $telefono, $email_contacto, $contacto_nombre,
+                        $sitio_web, $facebook, $instagram, $logo_filename,
+                        $empresa_id
+                    ]);
 
-                        $_SESSION['empresa_nombre'] = $nombre;
-                        log_activity('perfil_actualizado', 'empresas', $empresa_id, $datos_anteriores);
-                        $mensaje = 'Perfil actualizado correctamente';
-                    }
+                    $_SESSION['empresa_nombre'] = $nombre;
+                    log_activity('perfil_actualizado', 'empresas', $empresa_id, $datos_anteriores);
+                    $mensaje = 'Perfil actualizado correctamente';
                 }
             }
         } catch (Exception $e) {
@@ -345,9 +345,13 @@ require_once BASEPATH . '/includes/empresa_layout_header.php';
                     <?php if (!empty($empresa['logo'])): ?>
                     <small class="d-block text-muted mb-2"><i class="fa-solid fa-circle-check text-success me-1"></i>Logo actual guardado</small>
                     <?php endif; ?>
-                    <input type="file" name="logo" class="form-control<?= isset($field_errors['logo']) ? ' is-invalid' : '' ?>" accept="image/*">
+                    <button type="button" class="btn btn-outline-secondary btn-sm mb-1" onclick="document.getElementById('logoFileInput').click()">
+                        <i class="bi bi-upload me-1"></i> Seleccionar logo
+                    </button>
+                    <input type="file" name="logo" id="logoFileInput" class="d-none" accept="image/*">
+                    <span id="logoFileName" class="d-block small text-muted mb-1">Sin archivo seleccionado</span>
                     <?php if (isset($field_errors['logo'])): ?>
-                    <div class="invalid-feedback d-block text-start"><?= e($field_errors['logo']) ?></div>
+                    <div class="text-danger small text-start"><?= e($field_errors['logo']) ?></div>
                     <?php elseif (isset($field_errors['logo_warning'])): ?>
                     <div class="alert alert-warning small text-start mt-2 mb-0 py-2 px-3">
                         <i class="fa-solid fa-triangle-exclamation me-1"></i>
@@ -495,11 +499,12 @@ $extra_scripts = '<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/l
     }
 
     /* ---- Logo preview ---- */
-    document.querySelector('input[name="logo"]').addEventListener('change', function () {
+    document.getElementById('logoFileInput').addEventListener('change', function () {
         if (this.files[0]) {
             const r = new FileReader();
             r.onload = ev => document.getElementById('logoPreview').src = ev.target.result;
             r.readAsDataURL(this.files[0]);
+            document.getElementById('logoFileName').textContent = this.files[0].name;
         }
     });
 

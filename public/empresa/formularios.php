@@ -266,6 +266,51 @@ if (
 $permite_edicion = $datos && !$modo_consulta && in_array($datos['estado'] ?? '', ['borrador', 'rechazado'], true);
 $sin_registro = empty($datos);
 
+// ── Formularios dinámicos asignados ─────────────────────────────────────
+$formularios_min = [];
+try {
+    $stmt_resp = $db->prepare('
+        SELECT fd.id, fd.titulo, fd.descripcion,
+               fr.estado, fr.enviado_at,
+               fr.created_at AS inicio,
+               NULL AS fecha_limite
+        FROM formulario_respuestas fr
+        JOIN formularios_dinamicos fd ON fd.id = fr.formulario_id AND fd.estado = \'publicado\'
+        WHERE fr.empresa_id = ?
+        ORDER BY fr.created_at DESC
+    ');
+    $stmt_resp->execute([$empresa_id]);
+    $respondidos = $stmt_resp->fetchAll(PDO::FETCH_ASSOC);
+    $ids_respondidos = array_column($respondidos, 'id');
+
+    $pendientes = [];
+    try {
+        $not_in = $ids_respondidos
+            ? 'AND fd.id NOT IN (' . implode(',', array_fill(0, count($ids_respondidos), '?')) . ')'
+            : '';
+        $stmt_pend = $db->prepare("
+            SELECT DISTINCT fd.id, fd.titulo, fd.descripcion,
+                   'pendiente' AS estado, NULL AS enviado_at,
+                   fdes.created_at AS inicio,
+                   COALESCE(fdes.plazo_hasta, fe.fecha_limite) AS fecha_limite
+            FROM formulario_destinatarios fdes
+            JOIN formulario_envios fe ON fe.id = fdes.envio_id
+            JOIN formularios_dinamicos fd ON fd.id = fe.formulario_id AND fd.estado = 'publicado'
+            WHERE fdes.empresa_id = ? AND fdes.respondido = 0
+            $not_in
+            ORDER BY fecha_limite ASC, fd.id DESC
+        ");
+        $stmt_pend->execute(array_merge([$empresa_id], $ids_respondidos));
+        $pendientes = $stmt_pend->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Throwable $e) {
+        error_log('formularios.php pendientes_din: ' . $e->getMessage());
+    }
+
+    $formularios_min = array_merge($pendientes, $respondidos);
+} catch (Throwable $e) {
+    error_log('formularios.php formularios_min: ' . $e->getMessage());
+}
+
 // Historial (incluye id para acciones)
 $historial = [];
 try {
@@ -374,6 +419,65 @@ require_once BASEPATH . '/includes/empresa_layout_header.php';
         <?php if ($error): ?>
         <div class="alert alert-danger alert-dismissible fade show"><?= e($error) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
         <?php endif; ?>
+
+        <!-- Formularios del Ministerio -->
+        <div class="dj-section mb-4">
+            <div class="dj-section-head"><i class="bi bi-envelope-paper"></i> Formularios del Ministerio</div>
+            <?php if (empty($formularios_min)): ?>
+            <div class="dj-section-body">
+                <p class="text-muted mb-0 small"><i class="bi bi-info-circle me-1"></i>No hay formularios asignados por el momento.</p>
+            </div>
+            <?php else: ?>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Formulario</th>
+                            <th>Estado</th>
+                            <th>Vencimiento</th>
+                            <th>Último envío</th>
+                            <th class="text-end">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    <?php foreach ($formularios_min as $fm):
+                        $est = $fm['estado'] ?? 'pendiente';
+                        $badge_cls = [
+                            'pendiente' => 'bg-danger',
+                            'borrador'  => 'bg-secondary',
+                            'enviado'   => 'bg-warning text-dark',
+                        ][$est] ?? 'bg-secondary';
+                        $es_editable = in_array($est, ['pendiente', 'borrador'], true);
+                        $desc = trim($fm['descripcion'] ?? '');
+                        $desc_short = mb_strlen($desc) > 90 ? mb_substr($desc, 0, 87) . '…' : $desc;
+                    ?>
+                    <tr>
+                        <td>
+                            <div class="fw-semibold"><?= e($fm['titulo']) ?></div>
+                            <?php if ($desc_short !== ''): ?>
+                            <div class="small text-muted"><?= e($desc_short) ?></div>
+                            <?php endif; ?>
+                        </td>
+                        <td><span class="badge <?= $badge_cls ?>"><?= ucfirst($est) ?></span></td>
+                        <td class="small"><?= !empty($fm['fecha_limite']) ? e($fm['fecha_limite']) : '—' ?></td>
+                        <td class="small"><?= !empty($fm['enviado_at']) ? format_datetime($fm['enviado_at']) : '—' ?></td>
+                        <td class="text-end">
+                            <a href="formulario_dinamico.php?id=<?= (int)$fm['id'] ?>"
+                               class="btn btn-sm <?= $es_editable ? 'btn-primary' : 'btn-outline-primary' ?>">
+                                <?php if ($es_editable): ?>
+                                <i class="bi bi-pencil-square me-1"></i><?= $est === 'pendiente' ? 'Responder' : 'Continuar' ?>
+                                <?php else: ?>
+                                <i class="bi bi-eye me-1"></i>Ver respuesta
+                                <?php endif; ?>
+                            </a>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <?php endif; ?>
+        </div>
 
         <?php if ($historial): ?>
         <div class="dj-section mb-4">

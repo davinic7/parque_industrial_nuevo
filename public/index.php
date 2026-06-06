@@ -32,6 +32,13 @@ try {
 // Obtener rubros para gráfico
 $rubros = get_rubros_con_conteo();
 
+// Textos de secciones editables por ministerio
+$dato_impacto_texto           = get_config('dato_impacto_texto', '');
+$seccion_sectores_titulo      = get_config('seccion_sectores_titulo',      'Industrias por Sector');
+$seccion_sectores_descripcion = get_config('seccion_sectores_descripcion', 'El Parque Industrial de Catamarca cuenta con empresas de diversos sectores productivos, destacándose la industria textil, construcción y metalúrgica.');
+$seccion_mapa_titulo          = get_config('seccion_mapa_titulo',          'Zona del Parque Industrial');
+$seccion_mapa_descripcion     = get_config('seccion_mapa_descripcion',     'Polígono del Parque Industrial El Pantanillo. Para ver las empresas en el mapa, ingresá al mapa interactivo.');
+
 // Banners del carrusel (editables por ministerio)
 $banners_home = [];
 try {
@@ -82,11 +89,15 @@ require_once BASEPATH . '/includes/header.php';
         <div class="dato-impacto-inner">
             <span class="dato-impacto-icon"><i class="bi bi-lightbulb-fill"></i></span>
             <span class="dato-impacto-text">
-                ¿Sabías que el Parque Industrial El Pantanillo concentra empresas de
-                <strong><?= ($stats['total_rubros'] ?? 0) > 0 ? ($stats['total_rubros']) . ' rubros industriales' : 'múltiples rubros industriales' ?></strong>
-                y genera más de
-                <strong><?= ($stats['total_empleados'] ?? 0) > 0 ? format_number($stats['total_empleados']) . ' empleos directos' : 'cientos de empleos directos' ?></strong>
-                en Catamarca?
+                <?php if ($dato_impacto_texto !== ''): ?>
+                    <?= e($dato_impacto_texto) ?>
+                <?php else: ?>
+                    ¿Sabías que el Parque Industrial El Pantanillo concentra empresas de
+                    <strong><?php $tr = (int)($stats['total_rubros'] ?? 0); echo $tr > 0 ? $tr . ($tr === 1 ? ' rubro industrial' : ' rubros industriales') : 'múltiples rubros industriales'; ?></strong>
+                    y genera más de
+                    <strong><?php $te = (int)($stats['total_empleados'] ?? 0); echo $te > 0 ? format_number($te) . ($te === 1 ? ' empleo directo' : ' empleos directos') : 'cientos de empleos directos'; ?></strong>
+                    en Catamarca?
+                <?php endif; ?>
             </span>
             <a href="<?= PUBLIC_URL ?>/estadisticas.php" class="dato-impacto-link">Ver estadísticas <i class="bi bi-arrow-right ms-1"></i></a>
         </div>
@@ -139,8 +150,8 @@ require_once BASEPATH . '/includes/header.php';
     <div class="container">
         <div class="row align-items-center">
             <div class="col-lg-5">
-                <h2 class="text-primary mb-4">Industrias por Sector</h2>
-                <p>El Parque Industrial de Catamarca cuenta con empresas de diversos sectores productivos, destacándose la industria textil, construcción y metalúrgica.</p>
+                <h2 class="text-primary mb-4"><?= e($seccion_sectores_titulo) ?></h2>
+                <p><?= e($seccion_sectores_descripcion) ?></p>
                 <a href="<?= PUBLIC_URL ?>/estadisticas.php" class="btn btn-primary mt-3">
                     <i class="bi bi-graph-up me-2"></i>Ver estadísticas completas
                 </a>
@@ -158,8 +169,8 @@ require_once BASEPATH . '/includes/header.php';
 <section class="section">
     <div class="container">
         <div class="section-header">
-            <h2>Zona del Parque Industrial</h2>
-            <p>Polígono del Parque Industrial El Pantanillo. Para ver las empresas en el mapa, ingresá al mapa interactivo.</p>
+            <h2><?= e($seccion_mapa_titulo) ?></h2>
+            <p><?= e($seccion_mapa_descripcion) ?></p>
             <div class="section-divider"></div>
         </div>
         

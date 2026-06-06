@@ -22,7 +22,7 @@ if ($empresa_id) {
     $empresa = $stmt->fetch() ?: $empresa;
 }
 
-$campos_perfil = ['nombre', 'cuit', 'rubro', 'descripcion', 'ubicacion', 'telefono', 'email_contacto', 'contacto_nombre', 'logo'];
+$campos_perfil = ['nombre', 'cuit', 'rubro', 'descripcion', 'direccion', 'telefono', 'email_contacto', 'contacto_nombre', 'logo'];
 $completos = 0;
 foreach ($campos_perfil as $c) {
     if (!empty($empresa[$c])) {
@@ -49,7 +49,7 @@ $ultimo_datos = null;
 try {
     $st = $db->prepare('
         SELECT periodo, consumo_energia, consumo_agua, consumo_gas, produccion_mensual, unidad_produccion,
-               porcentaje_capacidad_uso, estado
+               porcentaje_capacidad_uso, dotacion_total, estado
         FROM datos_empresa
         WHERE empresa_id = ?
         ORDER BY periodo DESC
@@ -144,6 +144,71 @@ $fmtDec = static function ($v, int $dec = 1): string {
 </div>
 <?php endif; ?>
 
+<?php
+// ── Primeros pasos ──────────────────────────────────────────────
+$pasos_total = 1 + ($presentacion_form_id ? 1 : 0);
+$pasos_ok    = ($perfil_completo >= 75 ? 1 : 0) + ($presentacion_form_id && !$presentacion_pendiente ? 1 : 0);
+$onboarding_ok = ($pasos_ok === $pasos_total);
+if (!$onboarding_ok):
+?>
+<div class="card mb-4 shadow-sm" style="border-left:4px solid #0d6efd;">
+    <div class="card-body pb-3">
+        <div class="d-flex align-items-center gap-2 mb-3">
+            <i class="fa-solid fa-rocket text-primary"></i>
+            <h5 class="mb-0 fw-semibold">Primeros pasos</h5>
+            <span class="badge bg-light border text-muted fw-normal ms-1"><?= $pasos_ok ?>/<?= $pasos_total ?> completados</span>
+        </div>
+        <div class="row g-3">
+
+            <div class="col-md-6">
+                <div class="d-flex align-items-start gap-3 p-3 rounded-3 <?= $perfil_completo >= 75 ? 'bg-success bg-opacity-10 border border-success border-opacity-25' : 'bg-light' ?>">
+                    <div class="flex-shrink-0 pt-1">
+                        <?php if ($perfil_completo >= 75): ?>
+                        <i class="fa-solid fa-circle-check text-success fa-lg"></i>
+                        <?php else: ?>
+                        <i class="fa-regular fa-circle text-muted fa-lg"></i>
+                        <?php endif; ?>
+                    </div>
+                    <div class="flex-grow-1 min-w-0">
+                        <div class="fw-semibold">Completar perfil</div>
+                        <div class="small text-muted mb-2">Nombre, rubro, descripción, datos de contacto</div>
+                        <?php if ($perfil_completo < 75): ?>
+                        <a href="perfil.php" class="btn btn-sm btn-primary">Ir al perfil →</a>
+                        <?php else: ?>
+                        <span class="small text-success"><i class="fa-solid fa-check me-1"></i>Listo</span>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+
+            <?php if ($presentacion_form_id): ?>
+            <div class="col-md-6">
+                <div class="d-flex align-items-start gap-3 p-3 rounded-3 <?= !$presentacion_pendiente ? 'bg-success bg-opacity-10 border border-success border-opacity-25' : 'bg-light' ?>">
+                    <div class="flex-shrink-0 pt-1">
+                        <?php if (!$presentacion_pendiente): ?>
+                        <i class="fa-solid fa-circle-check text-success fa-lg"></i>
+                        <?php else: ?>
+                        <i class="fa-regular fa-circle text-muted fa-lg"></i>
+                        <?php endif; ?>
+                    </div>
+                    <div class="flex-grow-1 min-w-0">
+                        <div class="fw-semibold">Formulario de presentación</div>
+                        <div class="small text-muted mb-2">Datos iniciales solicitados por el Ministerio</div>
+                        <?php if ($presentacion_pendiente): ?>
+                        <a href="formulario_presentacion.php" class="btn btn-sm btn-primary">Completar →</a>
+                        <?php else: ?>
+                        <span class="small text-success"><i class="fa-solid fa-check me-1"></i>Enviado</span>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
+
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
 <div class="row g-4 mb-4">
     <div class="col-6 col-xl-3">
         <div class="empresa-stat-tile">
@@ -211,6 +276,11 @@ $fmtDec = static function ($v, int $dec = 1): string {
                 <p class="text-muted mb-0">Aún no hay datos declarados. Completá el formulario en <a href="formularios.php">Formularios</a> para ver energía, agua, gas y producción.</p>
                 <?php else: ?>
                 <div class="empresa-kpi-grid mb-3">
+                    <div class="empresa-kpi-pill">
+                        <div class="k">Empleados</div>
+                        <div class="v"><?= ($ultimo_datos['dotacion_total'] ?? null) > 0 ? e(format_number((int)$ultimo_datos['dotacion_total'])) : '—' ?></div>
+                        <div class="u">Total declarado</div>
+                    </div>
                     <div class="empresa-kpi-pill">
                         <div class="k">Energía</div>
                         <div class="v"><?= e($fmtDec($ultimo_datos['consumo_energia'] ?? null, 0)) ?></div>

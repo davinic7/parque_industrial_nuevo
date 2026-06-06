@@ -242,7 +242,7 @@ $coms_empresas_destino      = $coms_empresas_destino      ?? [];
 
         <hr>
         <button class="btn btn-primary btn-sm w-100" id="btn-nueva-conv">
-            <i class="bi bi-pencil-square me-1"></i>Nueva conversacion
+            <i class="bi bi-pencil-square me-1"></i>Nueva conversación
         </button>
     </aside>
 
@@ -261,7 +261,7 @@ $coms_empresas_destino      = $coms_empresas_destino      ?? [];
             <div class="coms-empty" id="coms-thread-empty">
                 <div>
                     <i class="bi bi-chat-square-text d-block" style="font-size: 3rem; opacity: .3;"></i>
-                    <div class="mt-2">Seleccione una conversacion para ver los mensajes.</div>
+                    <div class="mt-2">Seleccione una conversación para ver los mensajes.</div>
                 </div>
             </div>
 
@@ -320,7 +320,7 @@ $coms_empresas_destino      = $coms_empresas_destino      ?? [];
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>Nueva conversacion</h5>
+                <h5 class="modal-title"><i class="bi bi-pencil-square me-2"></i>Nueva conversación</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">

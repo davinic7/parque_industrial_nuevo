@@ -116,7 +116,7 @@ require_once BASEPATH . '/includes/ministerio_layout_header.php';
                     <div class="col-md-3">
                         <input type="text" name="buscar" class="form-control" placeholder="Buscar empresa..." value="<?= e($buscar) ?>">
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-3">
                         <select name="estado" class="form-select">
                             <option value="enviado" <?= $filtro_estado === 'enviado' ? 'selected' : '' ?>>Enviados (pendientes)</option>
                             <option value="todos" <?= $filtro_estado === 'todos' ? 'selected' : '' ?>>Todos</option>

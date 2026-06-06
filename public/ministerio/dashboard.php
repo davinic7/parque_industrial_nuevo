@@ -198,7 +198,7 @@ $extra_scripts = <<<HTML
                 labels: {$labelsJson},
                 datasets: [{ label: 'Empresas', data: {$dataJson}, backgroundColor: ['#3498db','#e74c3c','#95a5a6','#27ae60','#f39c12','#9b59b6','#e67e22','#1abc9c'] }]
             },
-            options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+            options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0, stepSize: 1 } } } }
         });
         const map = L.map('miniMap', { zoomControl: false, attributionControl: false });
         ParqueLeaflet.addSatelliteLayer(map);

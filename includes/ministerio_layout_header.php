@@ -108,10 +108,11 @@ $mn = static function (string $key) use ($ministerio_nav): string {
             <?php endif; ?>
 
             <div class="empresa-sidebar-section">Sitio público</div>
+            <a href="sitio-publico.php" class="<?= $mn('sitio_publico') ?>"><i class="fa-solid fa-globe"></i> Gestión del sitio</a>
             <a href="publicaciones.php" class="<?= $mn('publicaciones') ?>"><i class="fa-solid fa-bullhorn"></i> Publicaciones</a>
             <a href="banners.php" class="<?= $mn('banners') ?>"><i class="fa-solid fa-images"></i> Banners del inicio</a>
-            <a href="nosotros-editar.php" class="<?= $mn('nosotros') ?>"><i class="fa-solid fa-pen-to-square"></i> Página El Parque</a>
             <a href="estadisticas-config.php" class="<?= $mn('estadisticas') ?>"><i class="fa-solid fa-chart-column"></i> Estadísticas públicas</a>
+            <a href="empresa-metricas.php" class="<?= $mn('empresa-metricas') ?>"><i class="fa-solid fa-chart-bar"></i> Métricas empresa</a>
 
             <div class="empresa-sidebar-section">Analítica</div>
             <a href="graficos.php" class="<?= $mn('graficos') ?>"><i class="fa-solid fa-chart-line"></i> Gráficos y datos</a>
