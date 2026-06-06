@@ -205,22 +205,31 @@ document.addEventListener('DOMContentLoaded', function() {
         'MEDICAMENTOS': '#1abc9c'
     };
     
+    // Normaliza el nombre del rubro para la búsqueda de colores (ignora tildes y mayúsculas)
+    function getRubroColor(rubro) {
+        if (!rubro) return '#f39c12';
+        const key = rubro.toUpperCase();
+        if (coloresRubro[key]) return coloresRubro[key];
+        const norm = key.normalize('NFD').replace(/[̀-ͯ]/g, '');
+        return coloresRubro[norm] || '#f39c12';
+    }
+
     // Centro: Parque Industrial El Pantanillo
     const map = L.map('mapFull').setView([-28.5337, -65.8010], 15);
-    
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        attribution: 'Tiles © Esri'
-    }).addTo(map);
-    
+
+    // Capa satelital (aplica constrainMap internamente: minZoom 14, maxBounds parque)
+    ParqueLeaflet.addSatelliteLayer(map);
+    // Overlay OSM semitransparente para ver nombres de calles sobre el satélite
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        opacity: 0.4
+        opacity: 0.35,
+        maxZoom: 19
     }).addTo(map);
-    
+
     const markers = {};
-    
+
     empresas.forEach(emp => {
         if (emp.latitud && emp.longitud) {
-            const color = coloresRubro[emp.rubro] || '#f39c12';
+            const color = getRubroColor(emp.rubro);
             
             const icon = L.divIcon({
                 className: 'custom-marker',
@@ -273,7 +282,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const rubrosSeen = {};
     document.querySelectorAll('.empresa-list-dot').forEach(dot => {
         const rk = dot.dataset.rubroDot;
-        const c = coloresRubro[rk] || '#f39c12';
+        const c = getRubroColor(rk);
         dot.style.background = c;
         if (rk && !rubrosSeen[rk]) rubrosSeen[rk] = c;
     });

@@ -301,7 +301,7 @@ $extra_scripts = '
             });
         }
 
-        const map = L.map("heatMap").setView([' . $mapLat . ', ' . $mapLng . '], 12);
+        const map = L.map("heatMap").setView([' . $mapLat . ', ' . $mapLng . '], 15);
         ParqueLeaflet.addSatelliteLayer(map);
         ParqueLeaflet.addParquePolygon(map);
         if (heatPoints && heatPoints.length) {

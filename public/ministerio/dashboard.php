@@ -114,13 +114,13 @@ require_once BASEPATH . '/includes/ministerio_layout_header.php';
                 <div class="card">
                     <div class="card-header bg-white"><h5 class="mb-0">Acciones Rápidas</h5></div>
                     <div class="card-body">
-                        <div class="row g-3">
-                            <div class="col-md-3"><a href="empresas.php" class="btn btn-outline-primary w-100 py-3"><i class="bi bi-buildings d-block fs-3 mb-2"></i>Gestionar Empresas</a></div>
-                            <div class="col-md-3"><a href="formularios.php" class="btn btn-outline-warning w-100 py-3"><i class="bi bi-file-earmark-check d-block fs-3 mb-2"></i>Revisar Formularios</a></div>
-                            <div class="col-md-3"><a href="graficos.php" class="btn btn-outline-success w-100 py-3"><i class="bi bi-bar-chart d-block fs-3 mb-2"></i>Ver Gráficos</a></div>
-                            <div class="col-md-3"><a href="publicaciones.php" class="btn btn-outline-info w-100 py-3"><i class="bi bi-megaphone d-block fs-3 mb-2"></i>Publicaciones</a></div>
+                        <div class="row row-cols-2 <?= $coms_activo ? 'row-cols-md-5' : 'row-cols-md-4' ?> g-3">
+                            <div class="col"><a href="empresas.php" class="btn btn-primary w-100 py-3 h-100 d-flex flex-column align-items-center justify-content-center gap-1"><i class="bi bi-buildings fs-3"></i><span>Gestionar Empresas</span></a></div>
+                            <div class="col"><a href="formularios.php" class="btn btn-primary w-100 py-3 h-100 d-flex flex-column align-items-center justify-content-center gap-1"><i class="bi bi-file-earmark-check fs-3"></i><span>Revisar Formularios</span></a></div>
+                            <div class="col"><a href="graficos.php" class="btn btn-primary w-100 py-3 h-100 d-flex flex-column align-items-center justify-content-center gap-1"><i class="bi bi-bar-chart fs-3"></i><span>Ver Gráficos</span></a></div>
+                            <div class="col"><a href="publicaciones.php" class="btn btn-primary w-100 py-3 h-100 d-flex flex-column align-items-center justify-content-center gap-1"><i class="bi bi-megaphone fs-3"></i><span>Publicaciones</span></a></div>
                             <?php if ($coms_activo): ?>
-                            <div class="col-md-3"><a href="comunicaciones.php" class="btn btn-outline-danger w-100 py-3"><i class="bi bi-chat-dots d-block fs-3 mb-2"></i>Comunicaciones</a></div>
+                            <div class="col"><a href="comunicaciones.php" class="btn btn-primary w-100 py-3 h-100 d-flex flex-column align-items-center justify-content-center gap-1"><i class="bi bi-chat-dots fs-3"></i><span>Comunicaciones</span></a></div>
                             <?php endif; ?>
                         </div>
                     </div>

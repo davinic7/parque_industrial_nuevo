@@ -91,7 +91,7 @@ $mn = static function (string $key) use ($ministerio_nav): string {
             <a href="dashboard.php" class="<?= $mn('dashboard') ?>"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
 
             <div class="empresa-sidebar-section">Empresas</div>
-            <a href="empresas.php" class="<?= $mn('empresas') . ($ministerio_nav === 'nueva_empresa' ? ' active' : '') ?>"><i class="fa-solid fa-buildings"></i> Empresas</a>
+            <a href="empresas.php" class="<?= $mn('empresas') . ($ministerio_nav === 'nueva_empresa' ? ' active' : '') ?>"><i class="fa-solid fa-city"></i> Empresas</a>
             <a href="solicitudes-proyecto.php" class="<?= $mn('solicitudes') ?>"><i class="fa-solid fa-folder-open"></i> Solicitudes de proyecto<?php if ($ministerio_badge_solicitudes > 0): ?> <span class="badge bg-warning text-dark rounded-pill ms-1"><?= $ministerio_badge_solicitudes > 99 ? '99+' : $ministerio_badge_solicitudes ?></span><?php endif; ?></a>
 
             <div class="empresa-sidebar-section">Formularios</div>

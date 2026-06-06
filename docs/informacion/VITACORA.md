@@ -442,4 +442,40 @@ Testeo visual y funcional end-to-end del portal completo antes de la entrega. Re
 - `public/empresa/perfil.php` — fix input logo custom
 - `public/index.php` — fix plural singular rubros/empleados
 
+---
+
+## Sesión 6 — Correcciones visuales + Mejoras en todos los mapas (2026-06-06)
+
+### Bugs corregidos
+
+| # | Archivo | Descripción |
+|---|---------|-------------|
+| 1 | `public/ministerio/dashboard.php` | Acciones Rápidas: 5 botones con distinto tamaño y color → grid uniforme `btn btn-primary`, `row-cols-md-5`, `d-flex flex-column` con ícono centrado y texto |
+| 2 | `includes/ministerio_layout_header.php` | Ítem "Empresas" en sidebar sin ícono → `fa-buildings` (FA Pro, roto) reemplazado por `fa-city` (FA Free) |
+| 3 | `public/mapa.php` | Mapa interactivo principal usaba tiles Esri hardcodeados sin llamar a `ParqueLeaflet.addSatelliteLayer()` → sin restricciones de zoom/bounds. Corregido: ahora usa la función compartida (aplica `constrainMap` internamente: minZoom 14, maxZoom 19, maxBounds del parque) |
+| 4 | `public/mapa.php` | `coloresRubro` sin normalizar tildes: `METALURGICA` no matcheaba `METALÚRGICA`, etc. → agregado helper `getRubroColor()` que normaliza via `NFD` antes de buscar en el mapa |
+| 5 | `public/ministerio/graficos.php` | Heatmap inicializaba en zoom 12, por debajo del `MAP_MIN_ZOOM = 14` que impone `addSatelliteLayer()` → corregido a zoom 15 |
+
+### Contexto de todos los mapas del portal
+
+| Mapa | Archivo | Propósito | Interactivo | Freezed |
+|------|---------|-----------|-------------|---------|
+| `#mapFull` | `public/mapa.php` | Mapa público completo: lista de empresas + filtros + marcadores | Sí | No |
+| `#mapParqueIndex` | `public/index.php` | Miniatura en el hero del home: solo polígono del parque | No | Sí |
+| `#empresaMap` | `public/empresa.php` | Ubicación de empresa en su perfil público | No | Sí |
+| `#mapElParque` | `public/el-parque.php` | Página institucional: mapa explorable del parque | Sí | No |
+| `#mapPicker` | `public/empresa/perfil.php` | Picker de coordenadas para que la empresa marque su ubicación | Sí | No |
+| *(dinámico)* | `public/empresa/formulario_dinamico.php` | Campos de tipo "ubicación" en formularios configurables | Sí | No |
+| `#miniMap` | `public/ministerio/dashboard.php` | Miniatura del parque en el dashboard ministerio | No | Sí |
+| `#heatMap` | `public/ministerio/graficos.php` | Mapa de calor de empleados por empresa | No | No |
+| `#mapDetalle` | `public/ministerio/empresa-detalle.php` | Ubicación de empresa en el panel ministerio | No | Sí |
+
+Todos usan `ParqueLeaflet.addSatelliteLayer()` (que internamente aplica `constrainMap`: minZoom 14, maxZoom 19, bounds del parque). La capa de tiles Esri World Imagery más overlay OSM semitransparente (0.35) en `mapa.php` para efecto híbrido (etiquetas de calles sobre satélite).
+
+### Archivos modificados en esta sesión
+- `public/ministerio/dashboard.php` — Acciones Rápidas unificadas
+- `includes/ministerio_layout_header.php` — ícono Empresas fa-city
+- `public/mapa.php` — tiles → addSatelliteLayer, helper getRubroColor con normalización NFD
+- `public/ministerio/graficos.php` — zoom heatmap 12 → 15
+
 *Este archivo se actualiza en cada sesión de trabajo. Usarlo como punto de entrada en nuevos chats.*
