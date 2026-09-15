@@ -313,6 +313,16 @@ $total_resp = count($respuestas);
         <?php endforeach; ?>
     <?php endif; ?>
 
+    <?php
+    $terminos_export = get_config('terminos_legales_exportaciones', '');
+    if ($terminos_export !== ''):
+    ?>
+    <div style="margin:0 2rem 1rem; padding:10px 14px; border:1px solid #e2e8f0; border-radius:6px; font-size:.72rem; color:#64748b; background:#f8fafc;">
+        <strong style="color:#1e293b;">Términos legales:</strong><br>
+        <?= nl2br(e($terminos_export)) ?>
+    </div>
+    <?php endif; ?>
+
     </div><!-- /pdf-body -->
 
     <!-- ── Footer ── -->

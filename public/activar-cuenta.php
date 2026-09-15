@@ -37,7 +37,9 @@ if ($token === '') {
             $password = $_POST['password'] ?? '';
             $password_confirm = $_POST['password_confirm'] ?? '';
 
-            if (strlen($password) < 8) {
+            if (!verify_recaptcha()) {
+                $error = 'Debe completar la verificación de seguridad (reCAPTCHA).';
+            } elseif (strlen($password) < 8) {
                 $error = 'La contraseña debe tener al menos 8 caracteres.';
             } elseif ($password !== $password_confirm) {
                 $error = 'Las contraseñas no coinciden.';
@@ -116,10 +118,12 @@ $page_title = 'Activar cuenta';
                     <label class="form-label">Confirmar contraseña</label>
                     <input type="password" name="password_confirm" class="form-control" required minlength="8">
                 </div>
+                <?= recaptcha_field() ?>
                 <button type="submit" class="btn btn-success w-100 btn-lg">Activar mi cuenta</button>
             </form>
             <?php endif; ?>
         </div>
     </div>
+    <?= recaptcha_script() ?>
 </body>
 </html>

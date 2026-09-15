@@ -56,7 +56,18 @@ try {
     } catch (Exception $e) {
         $galeria = [];
     }
-    
+
+    // Lote asignado a esta empresa
+    $lote_empresa = null;
+    try {
+        $stmt = $db->prepare(
+            "SELECT numero_lote, sector, superficie_m2, estado, geometria_terreno
+             FROM lotes WHERE empresa_id = ? LIMIT 1"
+        );
+        $stmt->execute([$empresa_id]);
+        $lote_empresa = $stmt->fetch() ?: null;
+    } catch (Exception $e) { /* tabla lotes opcional */ }
+
 } catch (Exception $e) {
     set_flash('error', 'Error al cargar la empresa');
     redirect(PUBLIC_URL . '/empresas.php');
@@ -223,7 +234,7 @@ section.empresa-public.section { padding-top: 1.25rem; padding-bottom: 2.25rem; 
                         <div class="carousel-inner rounded overflow-hidden">
                             <?php foreach ($imagenes_carrusel as $idx => $img): ?>
                             <?php
-                            $ruta = is_array($img) ? ($img['imagen'] ?? '') : $img;
+                            $ruta = is_array($img) ? ($img['url'] ?? $img['imagen'] ?? '') : $img;
                             if (preg_match('#^https?://#i', $ruta)) {
                                 $src = $ruta;
                             } elseif (preg_match('#^logos/#i', $ruta)) {
@@ -402,6 +413,24 @@ section.empresa-public.section { padding-top: 1.25rem; padding-bottom: 2.25rem; 
                         </div>
                     </div>
                     <?php endif; ?>
+
+                    <?php if ($lote_empresa): ?>
+                    <div class="info-item">
+                        <i class="bi bi-map"></i>
+                        <div>
+                            <div class="label">Lote</div>
+                            <div class="value">
+                                <?= e($lote_empresa['numero_lote']) ?>
+                                <?php if ($lote_empresa['sector']): ?>
+                                <span class="text-muted fw-normal" style="font-size:.88em;"> · <?= e($lote_empresa['sector']) ?></span>
+                                <?php endif; ?>
+                                <?php if ($lote_empresa['superficie_m2']): ?>
+                                <div class="text-muted fw-normal" style="font-size:.85em;"><?= number_format((float)$lote_empresa['superficie_m2'], 0, ',', '.') ?> m²</div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
                     
                     <div class="info-item">
                         <i class="bi bi-building"></i>
@@ -449,15 +478,34 @@ section.empresa-public.section { padding-top: 1.25rem; padding-bottom: 2.25rem; 
     </div>
 </section>
 
-<script src="<?= PUBLIC_URL ?>/js/parque-leaflet.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const lat = <?= (float)($empresa['latitud'] ?? MAP_DEFAULT_LAT) ?>;
     const lng = <?= (float)($empresa['longitud'] ?? MAP_DEFAULT_LNG) ?>;
-    const map = L.map('empresaMap', { zoomControl: true }).setView([lat, lng], 15);
+    const map = L.map('empresaMap', { zoomControl: true }).setView([lat, lng], 14);
     ParqueLeaflet.addSatelliteLayer(map);
+    map.setMinZoom(7);
+    map.setMaxBounds(null);
+    map.options.maxBoundsViscosity = 0;
     ParqueLeaflet.addParquePolygon(map);
-    ParqueLeaflet.freezeMap(map);
+
+    <?php if (!empty($lote_empresa['geometria_terreno'])): ?>
+    (function() {
+        var geo = <?= $lote_empresa['geometria_terreno'] ?>;
+        if (geo && geo.coordinates && geo.coordinates[0]) {
+            var ring = geo.coordinates[0].slice(0, -1).map(function(c) { return [c[1], c[0]]; });
+            var poly = L.polygon(ring, {
+                color: '#0d6efd', weight: 2.5, fillColor: '#0d6efd', fillOpacity: 0.22
+            }).addTo(map);
+            poly.bindTooltip('Lote <?= e($lote_empresa['numero_lote']) ?>', {
+                permanent: true, direction: 'center', className: 'leaflet-pi-tooltip'
+            });
+            map.fitBounds(poly.getBounds(), { padding: [30, 30], maxZoom: 18 });
+        }
+    }());
+    <?php endif; ?>
+
+    // mapa público: no se congela para permitir zoom hasta ver la provincia
     L.marker([lat, lng])
         .addTo(map)
         .bindPopup('<strong><?= e($empresa['nombre']) ?></strong><br><?= e($empresa['ubicacion'] ?? '') ?>');

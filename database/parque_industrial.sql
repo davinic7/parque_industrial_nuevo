@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 31-05-2026 a las 01:11:28
+-- Tiempo de generación: 10-06-2026 a las 23:59:49
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -147,7 +147,8 @@ CREATE TABLE `conversaciones` (
 --
 
 INSERT INTO `conversaciones` (`id`, `titulo`, `empresa_id`, `iniciada_por`, `categoria`, `estado`, `referencia_tipo`, `referencia_id`, `ultimo_mensaje_at`, `created_at`, `updated_at`) VALUES
-(1, 'Nuevo formulario: prueba', 100, 'ministerio', 'formulario', 'abierta', 'formulario_dinamico', 1, '2026-05-29 01:21:30', '2026-05-29 04:16:56', '2026-05-29 04:21:30');
+(1, 'Nuevo formulario: prueba', 100, 'ministerio', 'formulario', 'abierta', 'formulario_dinamico', 1, '2026-05-29 01:21:30', '2026-05-29 04:16:56', '2026-05-29 04:21:30'),
+(2, 'Consulta sobre habilitación de galpón', 1, 'empresa', 'consulta', 'abierta', NULL, NULL, '2026-06-06 15:56:56', '2026-06-05 20:59:47', '2026-06-06 18:56:56');
 
 -- --------------------------------------------------------
 
@@ -231,6 +232,8 @@ CREATE TABLE `empresas` (
   `perfil_completo` tinyint(1) DEFAULT 0,
   `verificada` tinyint(1) DEFAULT 0,
   `visitas` int(11) DEFAULT 0,
+  `lote_declarado` varchar(50) DEFAULT NULL COMMENT 'Número de lote declarado por la empresa',
+  `lote_solicitud_estado` enum('sin_solicitud','pendiente','asignado') NOT NULL DEFAULT 'sin_solicitud',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -240,8 +243,8 @@ CREATE TABLE `empresas` (
 --
 
 INSERT INTO `empresas` (`id`, `usuario_id`, `nombre`, `razon_social`, `cuit`, `rubro`, `descripcion`, `ubicacion`, `direccion`, `latitud`, `longitud`, `telefono`, `email_contacto`, `contacto_nombre`, `sitio_web`, `facebook`, `instagram`, `linkedin`, `logo`, `imagen_portada`, `estado`, `perfil_completo`, `verificada`, `visitas`, `created_at`, `updated_at`) VALUES
-(1, 3, 'Empresa Demo S.R.L.', NULL, NULL, 'Textil', NULL, 'PI El Pantanillo', NULL, NULL, NULL, '3834123456', NULL, 'Juan P??rez', NULL, NULL, NULL, NULL, NULL, NULL, 'suspendida', 0, 0, 0, '2026-05-28 20:32:12', '2026-05-29 04:06:29'),
-(100, 201, 'prueba', NULL, NULL, 'Textil', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'activa', 0, 0, 0, '2026-05-29 04:14:10', '2026-05-29 04:16:34');
+(1, 3, 'Empresa Demo S.R.L.', '', '', 'Textil', 'Empresa de manufactura especializada en productos industriales para la región.', 'PI El Pantanillo', '', NULL, NULL, '3834000001', '', 'Juan P??rez', '', '', '', NULL, NULL, NULL, 'suspendida', 0, 0, 0, '2026-05-28 20:32:12', '2026-06-10 20:40:49'),
+(100, 201, 'prueba', NULL, NULL, 'Textil', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'activa', 0, 0, 7, '2026-05-29 04:14:10', '2026-06-10 21:36:42');
 
 -- --------------------------------------------------------
 
@@ -484,7 +487,89 @@ INSERT INTO `log_actividad` (`id`, `usuario_id`, `empresa_id`, `accion`, `tabla_
 (31, 1, NULL, 'formulario_dinamico_creado', 'formularios_dinamicos', 2, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36', '2026-05-29 05:31:15'),
 (32, 1, NULL, 'login', 'usuarios', 1, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36', '2026-05-30 19:39:41'),
 (33, 1, NULL, 'logout', 'usuarios', 1, NULL, NULL, '::1', 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36', '2026-05-30 20:39:43'),
-(34, 1, NULL, 'login', 'usuarios', 1, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36', '2026-05-30 20:45:45');
+(34, 1, NULL, 'login', 'usuarios', 1, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36', '2026-05-30 20:45:45'),
+(35, 3, 1, 'login', 'usuarios', 3, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.11187.1 Chrome/146.0.7680.216 Electron/41.6.1 Safari/537.36 MSIX', '2026-06-05 20:11:44'),
+(36, 3, 1, 'logout', 'usuarios', 3, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.11187.1 Chrome/146.0.7680.216 Electron/41.6.1 Safari/537.36 MSIX', '2026-06-05 20:37:19'),
+(37, 1, NULL, 'login', 'usuarios', 1, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.11187.1 Chrome/146.0.7680.216 Electron/41.6.1 Safari/537.36 MSIX', '2026-06-05 20:44:46'),
+(38, 1, NULL, 'logout', 'usuarios', 1, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.11187.1 Chrome/146.0.7680.216 Electron/41.6.1 Safari/537.36 MSIX', '2026-06-05 20:55:49'),
+(39, 3, 1, 'login', 'usuarios', 3, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.11187.1 Chrome/146.0.7680.216 Electron/41.6.1 Safari/537.36 MSIX', '2026-06-05 20:56:05'),
+(40, 3, 1, 'perfil_actualizado', 'empresas', 1, '{\"id\":1,\"usuario_id\":3,\"nombre\":\"Empresa Demo S.R.L.\",\"razon_social\":null,\"cuit\":null,\"rubro\":\"Textil\",\"descripcion\":null,\"ubicacion\":\"PI El Pantanillo\",\"direccion\":null,\"latitud\":null,\"longitud\":null,\"telefono\":\"3834123456\",\"email_contacto\":null,\"contacto_nombre\":\"Juan P??rez\",\"sitio_web\":null,\"facebook\":null,\"instagram\":null,\"linkedin\":null,\"logo\":null,\"imagen_portada\":null,\"estado\":\"suspendida\",\"perfil_completo\":0,\"verificada\":0,\"visitas\":0,\"created_at\":\"2026-05-28 17:32:12\",\"updated_at\":\"2026-05-29 01:06:29\"}', NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.11187.1 Chrome/146.0.7680.216 Electron/41.6.1 Safari/537.36 MSIX', '2026-06-05 21:08:05'),
+(41, 1, NULL, 'login', 'usuarios', 1, NULL, NULL, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-06 18:56:13'),
+(42, 1, NULL, 'logout', 'usuarios', 1, NULL, NULL, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-06 19:07:35'),
+(43, 1, NULL, 'login', 'usuarios', 1, NULL, NULL, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-06 20:12:57'),
+(44, 1, NULL, 'logout', 'usuarios', 1, NULL, NULL, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-06 20:15:24'),
+(45, 3, 1, 'login', 'usuarios', 3, NULL, NULL, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-06 20:15:28'),
+(46, 3, 1, 'logout', 'usuarios', 3, NULL, NULL, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-06 20:20:27'),
+(47, 1, NULL, 'login', 'usuarios', 1, NULL, NULL, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-06 20:20:44'),
+(48, 1, NULL, 'logout', 'usuarios', 1, NULL, NULL, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-06 20:21:45'),
+(49, 3, 1, 'login', 'usuarios', 3, NULL, NULL, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-06 20:22:00'),
+(50, 3, 1, 'logout', 'usuarios', 3, NULL, NULL, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-06 20:24:26'),
+(51, 1, NULL, 'login', 'usuarios', 1, NULL, NULL, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-06 20:24:44'),
+(52, 1, NULL, 'logout', 'usuarios', 1, NULL, NULL, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-06 20:27:12'),
+(53, 1, NULL, 'login', 'usuarios', 1, NULL, NULL, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-06 20:27:18'),
+(54, 1, NULL, 'logout', 'usuarios', 1, NULL, NULL, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-06 20:27:36'),
+(55, 3, 1, 'login', 'usuarios', 3, NULL, NULL, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-06 20:28:05'),
+(56, 3, 1, 'logout', 'usuarios', 3, NULL, NULL, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-06 20:29:11'),
+(57, 1, NULL, 'login', 'usuarios', 1, NULL, NULL, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-06 20:33:04'),
+(58, 1, NULL, 'logout', 'usuarios', 1, NULL, NULL, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-06 21:33:43'),
+(59, 1, NULL, 'login', 'usuarios', 1, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-10 18:27:47'),
+(60, 1, NULL, 'login', 'usuarios', 1, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-10 19:29:48'),
+(61, 1, NULL, 'logout', 'usuarios', 1, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-10 20:30:44'),
+(62, 1, NULL, 'login', 'usuarios', 1, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-10 20:35:13'),
+(63, 3, 1, 'login', 'usuarios', 3, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 20:40:47'),
+(64, 3, 1, 'perfil_actualizado', 'empresas', 1, '{\"id\":1,\"usuario_id\":3,\"nombre\":\"Empresa Demo S.R.L.\",\"razon_social\":\"\",\"cuit\":\"\",\"rubro\":\"Textil\",\"descripcion\":\"Empresa de manufactura especializada en productos industriales para la regi\\u00f3n.\",\"ubicacion\":\"PI El Pantanillo\",\"direccion\":\"\",\"latitud\":null,\"longitud\":null,\"telefono\":\"3834123456\",\"email_contacto\":\"\",\"contacto_nombre\":\"Juan P??rez\",\"sitio_web\":\"\",\"facebook\":\"\",\"instagram\":\"\",\"linkedin\":null,\"logo\":null,\"imagen_portada\":null,\"estado\":\"suspendida\",\"perfil_completo\":0,\"verificada\":0,\"visitas\":0,\"created_at\":\"2026-05-28 17:32:12\",\"updated_at\":\"2026-06-05 18:08:05\"}', NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 20:40:49'),
+(65, 3, 1, 'logout', 'usuarios', 3, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 20:40:51'),
+(66, 1, NULL, 'login', 'usuarios', 1, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 20:40:52'),
+(67, 1, NULL, 'logout', 'usuarios', 1, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 20:41:21'),
+(68, 1, NULL, 'login', 'usuarios', 1, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 20:41:22'),
+(69, 3, 1, 'login', 'usuarios', 3, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 20:43:11'),
+(70, 3, 1, 'perfil_actualizado', 'empresas', 1, '{\"id\":1,\"usuario_id\":3,\"nombre\":\"Empresa Demo S.R.L.\",\"razon_social\":\"\",\"cuit\":\"\",\"rubro\":\"Textil\",\"descripcion\":\"Empresa de manufactura especializada en productos industriales para la regi\\u00f3n.\",\"ubicacion\":\"PI El Pantanillo\",\"direccion\":\"\",\"latitud\":null,\"longitud\":null,\"telefono\":\"3834000001\",\"email_contacto\":\"\",\"contacto_nombre\":\"Juan P??rez\",\"sitio_web\":\"\",\"facebook\":\"\",\"instagram\":\"\",\"linkedin\":null,\"logo\":null,\"imagen_portada\":null,\"estado\":\"suspendida\",\"perfil_completo\":0,\"verificada\":0,\"visitas\":0,\"created_at\":\"2026-05-28 17:32:12\",\"updated_at\":\"2026-06-10 17:40:49\"}', NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 20:43:13'),
+(71, 3, 1, 'logout', 'usuarios', 3, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 20:43:14'),
+(72, 1, NULL, 'login', 'usuarios', 1, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 20:43:15'),
+(73, 1, NULL, 'logout', 'usuarios', 1, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 20:43:21'),
+(74, 1, NULL, 'login', 'usuarios', 1, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 20:43:21'),
+(75, 3, 1, 'login', 'usuarios', 3, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 21:14:49'),
+(76, 3, 1, 'perfil_actualizado', 'empresas', 1, '{\"id\":1,\"usuario_id\":3,\"nombre\":\"Empresa Demo S.R.L.\",\"razon_social\":\"\",\"cuit\":\"\",\"rubro\":\"Textil\",\"descripcion\":\"Empresa de manufactura especializada en productos industriales para la regi\\u00f3n.\",\"ubicacion\":\"PI El Pantanillo\",\"direccion\":\"\",\"latitud\":null,\"longitud\":null,\"telefono\":\"3834000001\",\"email_contacto\":\"\",\"contacto_nombre\":\"Juan P??rez\",\"sitio_web\":\"\",\"facebook\":\"\",\"instagram\":\"\",\"linkedin\":null,\"logo\":null,\"imagen_portada\":null,\"estado\":\"suspendida\",\"perfil_completo\":0,\"verificada\":0,\"visitas\":0,\"created_at\":\"2026-05-28 17:32:12\",\"updated_at\":\"2026-06-10 17:40:49\"}', NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 21:14:51'),
+(77, 3, 1, 'logout', 'usuarios', 3, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 21:14:53'),
+(78, 1, NULL, 'login', 'usuarios', 1, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 21:14:53'),
+(79, 1, NULL, 'logout', 'usuarios', 1, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 21:15:01'),
+(80, 1, NULL, 'login', 'usuarios', 1, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 21:15:01'),
+(81, 3, 1, 'login', 'usuarios', 3, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 21:15:14'),
+(82, 3, 1, 'perfil_actualizado', 'empresas', 1, '{\"id\":1,\"usuario_id\":3,\"nombre\":\"Empresa Demo S.R.L.\",\"razon_social\":\"\",\"cuit\":\"\",\"rubro\":\"Textil\",\"descripcion\":\"Empresa de manufactura especializada en productos industriales para la regi\\u00f3n.\",\"ubicacion\":\"PI El Pantanillo\",\"direccion\":\"\",\"latitud\":null,\"longitud\":null,\"telefono\":\"3834000001\",\"email_contacto\":\"\",\"contacto_nombre\":\"Juan P??rez\",\"sitio_web\":\"\",\"facebook\":\"\",\"instagram\":\"\",\"linkedin\":null,\"logo\":null,\"imagen_portada\":null,\"estado\":\"suspendida\",\"perfil_completo\":0,\"verificada\":0,\"visitas\":0,\"created_at\":\"2026-05-28 17:32:12\",\"updated_at\":\"2026-06-10 17:40:49\"}', NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 21:15:16'),
+(83, 3, 1, 'logout', 'usuarios', 3, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 21:15:17'),
+(84, 1, NULL, 'login', 'usuarios', 1, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 21:15:18'),
+(85, 1, NULL, 'logout', 'usuarios', 1, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 21:15:23'),
+(86, 1, NULL, 'login', 'usuarios', 1, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 21:15:24'),
+(87, 1, NULL, 'login', 'usuarios', 1, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 21:16:02'),
+(88, 1, NULL, 'login', 'usuarios', 1, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 21:17:11'),
+(89, 3, 1, 'login', 'usuarios', 3, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 21:17:43'),
+(90, 3, 1, 'login', 'usuarios', 3, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 21:18:27'),
+(91, 3, 1, 'perfil_actualizado', 'empresas', 1, '{\"id\":1,\"usuario_id\":3,\"nombre\":\"Empresa Demo S.R.L.\",\"razon_social\":\"\",\"cuit\":\"\",\"rubro\":\"Textil\",\"descripcion\":\"Empresa de manufactura especializada en productos industriales para la regi\\u00f3n.\",\"ubicacion\":\"PI El Pantanillo\",\"direccion\":\"\",\"latitud\":null,\"longitud\":null,\"telefono\":\"3834000001\",\"email_contacto\":\"\",\"contacto_nombre\":\"Juan P??rez\",\"sitio_web\":\"\",\"facebook\":\"\",\"instagram\":\"\",\"linkedin\":null,\"logo\":null,\"imagen_portada\":null,\"estado\":\"suspendida\",\"perfil_completo\":0,\"verificada\":0,\"visitas\":0,\"created_at\":\"2026-05-28 17:32:12\",\"updated_at\":\"2026-06-10 17:40:49\"}', NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 21:18:29'),
+(92, 3, 1, 'logout', 'usuarios', 3, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 21:18:31'),
+(93, 1, NULL, 'login', 'usuarios', 1, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 21:18:31'),
+(94, 1, NULL, 'logout', 'usuarios', 1, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 21:18:36'),
+(95, 1, NULL, 'login', 'usuarios', 1, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 21:18:37'),
+(96, 1, NULL, 'login', 'usuarios', 1, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 21:21:39'),
+(97, 1, NULL, 'login', 'usuarios', 1, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 21:22:58'),
+(98, 3, 1, 'login', 'usuarios', 3, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 21:23:37'),
+(99, 3, 1, 'login', 'usuarios', 3, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 21:27:04'),
+(100, 3, 1, 'logout', 'usuarios', 3, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 21:27:07'),
+(101, 1, NULL, 'login', 'usuarios', 1, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 21:27:08'),
+(102, 3, 1, 'login', 'usuarios', 3, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 21:28:44'),
+(103, 3, 1, 'login', 'usuarios', 3, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 21:30:03'),
+(104, 3, 1, 'login', 'usuarios', 3, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 21:30:32'),
+(105, 3, 1, 'perfil_actualizado', 'empresas', 1, '{\"id\":1,\"usuario_id\":3,\"nombre\":\"Empresa Demo S.R.L.\",\"razon_social\":\"\",\"cuit\":\"\",\"rubro\":\"Textil\",\"descripcion\":\"Empresa de manufactura especializada en productos industriales para la regi\\u00f3n.\",\"ubicacion\":\"PI El Pantanillo\",\"direccion\":\"\",\"latitud\":null,\"longitud\":null,\"telefono\":\"3834000001\",\"email_contacto\":\"\",\"contacto_nombre\":\"Juan P??rez\",\"sitio_web\":\"\",\"facebook\":\"\",\"instagram\":\"\",\"linkedin\":null,\"logo\":null,\"imagen_portada\":null,\"estado\":\"suspendida\",\"perfil_completo\":0,\"verificada\":0,\"visitas\":0,\"created_at\":\"2026-05-28 17:32:12\",\"updated_at\":\"2026-06-10 17:40:49\"}', NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 21:30:34'),
+(106, 3, 1, 'logout', 'usuarios', 3, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 21:30:35'),
+(107, 1, NULL, 'login', 'usuarios', 1, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 21:30:36'),
+(108, 1, NULL, 'logout', 'usuarios', 1, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 21:30:42'),
+(109, 1, NULL, 'login', 'usuarios', 1, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 21:30:43'),
+(110, 1, NULL, 'logout', 'usuarios', 1, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36', '2026-06-10 21:35:19'),
+(111, 3, 1, 'login', 'usuarios', 3, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 21:36:47'),
+(112, 3, 1, 'perfil_actualizado', 'empresas', 1, '{\"id\":1,\"usuario_id\":3,\"nombre\":\"Empresa Demo S.R.L.\",\"razon_social\":\"\",\"cuit\":\"\",\"rubro\":\"Textil\",\"descripcion\":\"Empresa de manufactura especializada en productos industriales para la regi\\u00f3n.\",\"ubicacion\":\"PI El Pantanillo\",\"direccion\":\"\",\"latitud\":null,\"longitud\":null,\"telefono\":\"3834000001\",\"email_contacto\":\"\",\"contacto_nombre\":\"Juan P??rez\",\"sitio_web\":\"\",\"facebook\":\"\",\"instagram\":\"\",\"linkedin\":null,\"logo\":null,\"imagen_portada\":null,\"estado\":\"suspendida\",\"perfil_completo\":0,\"verificada\":0,\"visitas\":0,\"created_at\":\"2026-05-28 17:32:12\",\"updated_at\":\"2026-06-10 17:40:49\"}', NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 21:36:49'),
+(113, 3, 1, 'logout', 'usuarios', 3, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 21:36:50'),
+(114, 1, NULL, 'login', 'usuarios', 1, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 21:36:51'),
+(115, 1, NULL, 'logout', 'usuarios', 1, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 21:36:56'),
+(116, 1, NULL, 'login', 'usuarios', 1, NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', '2026-06-10 21:36:57');
 
 -- --------------------------------------------------------
 
@@ -494,13 +579,22 @@ INSERT INTO `log_actividad` (`id`, `usuario_id`, `empresa_id`, `accion`, `tabla_
 
 CREATE TABLE `lotes` (
   `id` int(11) NOT NULL,
-  `nombre` varchar(100) NOT NULL,
-  `zona` varchar(100) DEFAULT NULL,
-  `superficie` decimal(10,2) DEFAULT NULL,
+  `numero_lote` varchar(50) NOT NULL,
+  `sector` varchar(100) DEFAULT NULL,
+  `superficie_m2` decimal(10,2) DEFAULT NULL,
   `estado` enum('disponible','ocupado','reservado') DEFAULT 'disponible',
+  `geometria_terreno` longtext DEFAULT NULL COMMENT 'GeoJSON Polygon serializado',
   `empresa_id` int(11) DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Volcado de datos para la tabla `lotes`
+--
+
+INSERT INTO `lotes` (`id`, `numero_lote`, `sector`, `superficie_m2`, `estado`, `geometria_terreno`, `empresa_id`, `created_at`, `updated_at`) VALUES
+(1, 'a3', 'norte, zona A', 5938.00, 'ocupado', '{\"type\":\"Polygon\",\"coordinates\":[[[-65.79995691776277,-28.53102352748398],[-65.7992058992386,-28.530495675123433],[-65.79833686351778,-28.531457118516656],[-65.79916298389436,-28.53197554023588],[-65.79995691776277,-28.53102352748398]]]}', 100, '2026-06-10 20:36:36', '2026-06-10 20:39:54');
 
 -- --------------------------------------------------------
 
@@ -548,7 +642,10 @@ CREATE TABLE `mensajes_v2` (
 INSERT INTO `mensajes_v2` (`id`, `conversacion_id`, `remitente_id`, `remitente_tipo`, `contenido`, `es_borrador`, `leido_at`, `created_at`) VALUES
 (1, 1, 1, 'ministerio', 'El Ministerio le asignó un nuevo formulario para completar. Use el botón \"Completar formulario\" para acceder.\n\npara prueba', 0, '2026-05-29 01:17:09', '2026-05-29 04:16:56'),
 (2, 1, 201, 'empresa', 'listo', 0, '2026-05-29 01:21:52', '2026-05-29 04:21:30'),
-(3, 1, 201, 'empresa', '', 1, NULL, '2026-05-29 04:21:30');
+(3, 1, 201, 'empresa', '', 1, NULL, '2026-05-29 04:21:30'),
+(4, 2, 3, 'empresa', 'Quisiera saber qué documentación necesito para habilitar un nuevo galpón. Muchas gracias.', 0, '2026-06-06 15:56:47', '2026-06-05 20:59:47'),
+(5, 2, 1, 'ministerio', 'ok', 1, NULL, '2026-06-06 18:56:54'),
+(6, 2, 1, 'ministerio', 'ok', 0, NULL, '2026-06-06 18:56:56');
 
 -- --------------------------------------------------------
 
@@ -728,15 +825,34 @@ INSERT INTO `rubros` (`id`, `nombre`, `descripcion`, `icono`, `color`, `activo`,
 
 CREATE TABLE `solicitudes_proyecto` (
   `id` int(11) NOT NULL,
-  `nombre` varchar(255) NOT NULL,
+  `contacto` varchar(255) NOT NULL,
   `email` varchar(255) NOT NULL,
-  `empresa_proyecto` varchar(255) DEFAULT NULL,
-  `descripcion` text DEFAULT NULL,
+  `nombre_empresa` varchar(255) DEFAULT NULL,
+  `tipo_persona` enum('fisica','juridica') DEFAULT NULL,
+  `dni_titulares` varchar(255) DEFAULT NULL,
+  `cuit_cuil` varchar(20) DEFAULT NULL,
+  `resumen_proyecto` text DEFAULT NULL,
+  `solicita_cita` tinyint(1) NOT NULL DEFAULT 0,
   `rubro` varchar(100) DEFAULT NULL,
+  `rubro_actividad` varchar(255) DEFAULT NULL,
+  `tiene_contrato_constitutivo` tinyint(1) NOT NULL DEFAULT 0,
+  `tiene_acta_autoridades` tinyint(1) NOT NULL DEFAULT 0,
+  `tiene_inscripcion_registro` tinyint(1) NOT NULL DEFAULT 0,
+  `tiene_inscripcion_arca` tinyint(1) NOT NULL DEFAULT 0,
+  `tiene_inscripcion_arcat` tinyint(1) NOT NULL DEFAULT 0,
+  `otras_inscripciones` varchar(500) DEFAULT NULL,
+  `tiene_estudio_ambiental` tinyint(1) NOT NULL DEFAULT 0,
+  `tiene_croquis_obra` tinyint(1) NOT NULL DEFAULT 0,
+  `tiene_cronograma_obra` tinyint(1) NOT NULL DEFAULT 0,
   `telefono` varchar(50) DEFAULT NULL,
   `estado` enum('nueva','en_carpeta','eliminada') NOT NULL DEFAULT 'nueva',
   `observaciones` text DEFAULT NULL,
   `archivos` text DEFAULT NULL,
+  `archivo_1` varchar(500) DEFAULT NULL,
+  `archivo_2` varchar(500) DEFAULT NULL,
+  `archivo_3` varchar(500) DEFAULT NULL,
+  `archivo_4` varchar(500) DEFAULT NULL,
+  `archivo_5` varchar(500) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -795,9 +911,9 @@ CREATE TABLE `usuarios` (
 --
 
 INSERT INTO `usuarios` (`id`, `email`, `password`, `rol`, `activo`, `ultimo_acceso`, `token_recuperacion`, `token_expira`, `token_activacion`, `token_activacion_expira`, `email_verificado`, `created_at`, `updated_at`) VALUES
-(1, 'admin@parqueindustrial.gob.ar', '$2y$10$xHWydNT4i4lVvD.OjuYOH.TjIJRZcoAS2nOO2vK1t7EBvHu4Dgo5C', 'admin', 1, '2026-05-30 17:45:45', NULL, NULL, NULL, NULL, 1, '2026-05-28 20:32:12', '2026-05-30 20:45:45'),
+(1, 'admin@parqueindustrial.gob.ar', '$2y$10$xHWydNT4i4lVvD.OjuYOH.TjIJRZcoAS2nOO2vK1t7EBvHu4Dgo5C', 'admin', 1, '2026-06-10 18:36:57', NULL, NULL, NULL, NULL, 1, '2026-05-28 20:32:12', '2026-06-10 21:36:57'),
 (2, 'ministerio@catamarca.gob.ar', '$2y$10$xHWydNT4i4lVvD.OjuYOH.TjIJRZcoAS2nOO2vK1t7EBvHu4Dgo5C', 'ministerio', 1, NULL, NULL, NULL, NULL, NULL, 1, '2026-05-28 20:32:12', '2026-05-28 20:32:12'),
-(3, 'empresa@demo.com', '$2y$10$xHWydNT4i4lVvD.OjuYOH.TjIJRZcoAS2nOO2vK1t7EBvHu4Dgo5C', 'empresa', 1, NULL, NULL, NULL, NULL, NULL, 1, '2026-05-28 20:32:12', '2026-05-28 20:32:12'),
+(3, 'empresa@demo.com', '$2y$10$xHWydNT4i4lVvD.OjuYOH.TjIJRZcoAS2nOO2vK1t7EBvHu4Dgo5C', 'empresa', 1, '2026-06-10 18:36:47', NULL, NULL, NULL, NULL, 1, '2026-05-28 20:32:12', '2026-06-10 21:36:47'),
 (201, 'prueba@gmail.com', '$2y$10$EUM.QG71sKF3oHOzKKSL8.EeGQkiGXqgDZTBBC/OfHQihfr1M2fri', 'empresa', 1, '2026-05-29 01:17:06', NULL, NULL, NULL, NULL, 1, '2026-05-29 04:14:10', '2026-05-29 04:17:06');
 
 -- --------------------------------------------------------
@@ -814,6 +930,19 @@ CREATE TABLE `visitas_empresa` (
   `referer` varchar(255) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Volcado de datos para la tabla `visitas_empresa`
+--
+
+INSERT INTO `visitas_empresa` (`id`, `empresa_id`, `ip`, `user_agent`, `referer`, `created_at`) VALUES
+(4, 100, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', NULL, '2026-06-10 20:40:24'),
+(5, 100, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', NULL, '2026-06-10 20:43:06'),
+(6, 100, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', NULL, '2026-06-10 21:14:41'),
+(7, 100, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', NULL, '2026-06-10 21:15:09'),
+(8, 100, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', NULL, '2026-06-10 21:18:22'),
+(9, 100, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', NULL, '2026-06-10 21:30:26'),
+(10, 100, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36', NULL, '2026-06-10 21:36:42');
 
 -- --------------------------------------------------------
 
@@ -1034,7 +1163,10 @@ ALTER TABLE `log_actividad`
 -- Indices de la tabla `lotes`
 --
 ALTER TABLE `lotes`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uk_numero_lote` (`numero_lote`),
+  ADD KEY `idx_estado` (`estado`),
+  ADD KEY `idx_empresa` (`empresa_id`);
 
 --
 -- Indices de la tabla `mensajes`
@@ -1171,7 +1303,7 @@ ALTER TABLE `configuracion_sitio`
 -- AUTO_INCREMENT de la tabla `conversaciones`
 --
 ALTER TABLE `conversaciones`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT de la tabla `datos_empresa`
@@ -1231,13 +1363,13 @@ ALTER TABLE `formulario_respuestas`
 -- AUTO_INCREMENT de la tabla `log_actividad`
 --
 ALTER TABLE `log_actividad`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=35;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=117;
 
 --
 -- AUTO_INCREMENT de la tabla `lotes`
 --
 ALTER TABLE `lotes`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT de la tabla `mensajes`
@@ -1249,7 +1381,7 @@ ALTER TABLE `mensajes`
 -- AUTO_INCREMENT de la tabla `mensajes_v2`
 --
 ALTER TABLE `mensajes_v2`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT de la tabla `notificaciones`
@@ -1315,7 +1447,7 @@ ALTER TABLE `usuarios`
 -- AUTO_INCREMENT de la tabla `visitas_empresa`
 --
 ALTER TABLE `visitas_empresa`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- Restricciones para tablas volcadas
@@ -1353,6 +1485,12 @@ ALTER TABLE `formulario_preguntas`
   ADD CONSTRAINT `formulario_preguntas_ibfk_1` FOREIGN KEY (`formulario_id`) REFERENCES `formularios_dinamicos` (`id`) ON DELETE CASCADE;
 
 --
+-- Filtros para la tabla `lotes`
+--
+ALTER TABLE `lotes`
+  ADD CONSTRAINT `lotes_ibfk_1` FOREIGN KEY (`empresa_id`) REFERENCES `empresas` (`id`) ON DELETE SET NULL;
+
+--
 -- Filtros para la tabla `mensajes`
 --
 ALTER TABLE `mensajes`
@@ -1387,6 +1525,14 @@ ALTER TABLE `respuestas_formulario`
 --
 ALTER TABLE `visitas_empresa`
   ADD CONSTRAINT `visitas_empresa_ibfk_1` FOREIGN KEY (`empresa_id`) REFERENCES `empresas` (`id`) ON DELETE CASCADE;
+-- ============================================================
+-- MIGRACIÓN: columnas de solicitud de lote en empresas
+-- Ejecutar una sola vez en bases de datos existentes:
+-- ============================================================
+ALTER TABLE `empresas`
+  ADD COLUMN IF NOT EXISTS `lote_declarado` varchar(50) DEFAULT NULL COMMENT 'Número de lote declarado por la empresa',
+  ADD COLUMN IF NOT EXISTS `lote_solicitud_estado` enum('sin_solicitud','pendiente','asignado') NOT NULL DEFAULT 'sin_solicitud';
+
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

@@ -522,6 +522,17 @@ require_once BASEPATH . '/includes/empresa_layout_header.php';
                 </div>
             </div>
 
+            <?php
+            $terminos_form = get_config('terminos_legales_formularios', '');
+            if ($terminos_form !== ''):
+            ?>
+            <div class="alert alert-secondary small mt-3 mb-3">
+                <i class="bi bi-file-earmark-text me-1"></i>
+                <strong>Términos y condiciones:</strong><br>
+                <?= nl2br(e($terminos_form)) ?>
+            </div>
+            <?php endif; ?>
+
             <div class="d-flex gap-3">
                 <button type="submit" name="accion" value="guardar" class="btn btn-outline-secondary">
                     <i class="bi bi-save me-2"></i>Guardar borrador

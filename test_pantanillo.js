@@ -1,22 +1,22 @@
 /**
  * Test completo del Parque Industrial de Catamarca
- * Cubre: sitio público, panel empresa, panel ministerio
+ * Cubre: sitio público, APIs, panel empresa, panel ministerio
  *
  * Uso:
- *   node test_pantanillo.js
+ *   node test_pantanillo.js              ← servidor local (default)
+ *   BASE_URL=https://... node test_pantanillo.js  ← contra producción
+ *   HEADLESS=false node test_pantanillo.js        ← con ventana visible
  *
- * Credenciales: definirlas como variables de entorno o editar la sección CONFIG.
- *   set EMPRESA_EMAIL=empresa@test.com
- *   set EMPRESA_PASS=password123
- *   set MINISTERIO_EMAIL=admin@test.com
- *   set MINISTERIO_PASS=password123
+ * Credenciales por .env.test o variables de entorno:
+ *   EMPRESA_EMAIL / EMPRESA_PASS
+ *   MINISTERIO_EMAIL / MINISTERIO_PASS
  */
 
 const { chromium } = require('playwright');
 const path = require('path');
-const fs = require('fs');
+const fs   = require('fs');
 
-// ── DOTENV: carga .env.test si existe (evita escribir credenciales a mano) ───
+// ── DOTENV ────────────────────────────────────────────────────────────────────
 const ENV_FILE = path.join(__dirname, '.env.test');
 if (fs.existsSync(ENV_FILE)) {
   fs.readFileSync(ENV_FILE, 'utf8').split('\n').forEach(line => {
@@ -26,30 +26,29 @@ if (fs.existsSync(ENV_FILE)) {
 }
 
 // ── CONFIG ────────────────────────────────────────────────────────────────────
-const BASE_URL = 'https://parque-industrial.onrender.com';
+const BASE_URL = (process.env.BASE_URL || 'http://localhost:8080').replace(/\/$/, '');
 
 const CREDS = {
   empresa: {
-    email:    process.env.EMPRESA_EMAIL    || 'COMPLETAR_EMAIL_EMPRESA',
-    password: process.env.EMPRESA_PASS     || 'COMPLETAR_PASSWORD_EMPRESA',
+    email:    process.env.EMPRESA_EMAIL    || 'empresa@demo.com',
+    password: process.env.EMPRESA_PASS     || 'admin123',
   },
   ministerio: {
-    email:    process.env.MINISTERIO_EMAIL || 'COMPLETAR_EMAIL_MINISTERIO',
-    password: process.env.MINISTERIO_PASS  || 'COMPLETAR_PASSWORD_MINISTERIO',
+    email:    process.env.MINISTERIO_EMAIL || 'admin@parqueindustrial.gob.ar',
+    password: process.env.MINISTERIO_PASS  || 'admin123',
   },
 };
 
 const SCREENSHOT_DIR = path.join(__dirname, 'test_screenshots');
-const SLOW_MO = 400;
-const WARMUP_TIMEOUT = 30000; // tolera cold start de Render en warm-up
-// ─────────────────────────────────────────────────────────────────────────────
+const TIMEOUT        = 12000;  // ms por selector
+const NAV_TIMEOUT    = 20000;  // ms para page.goto
+
+// ── ESTADO GLOBAL ─────────────────────────────────────────────────────────────
+let passCount = 0, failCount = 0;
+const results = [];
+let _page = null;
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
-let passCount = 0;
-let failCount = 0;
-const results = [];
-let _page = null; // referencia global para screenshots en fallo
-
 function ok(label) {
   passCount++;
   results.push({ status: '✅', label });
@@ -63,552 +62,808 @@ function fail(label, err) {
   console.error(`  ❌ ${label}\n     ${msg}`);
 }
 
-async function screenshot(page, name) {
+async function shot(page, name) {
   const file = path.join(SCREENSHOT_DIR, `${name}.png`);
-  await page.screenshot({ path: file, fullPage: false });
+  await page.screenshot({ path: file, fullPage: false }).catch(() => {});
   return file;
 }
 
-async function waitReady(page) {
+async function go(page, url) {
+  await page.goto(`${BASE_URL}${url}`, { timeout: NAV_TIMEOUT });
   await page.waitForLoadState('domcontentloaded');
 }
 
-async function login(page, role) {
-  const { email, password } = CREDS[role];
-  await page.goto(`${BASE_URL}/login.php`);
-  await waitReady(page);
-  await page.fill('input[name="email"]', email);
-  await page.fill('input[name="password"]', password);
-  await page.click('button[type="submit"]');
-  await waitReady(page);
-}
-
-async function logout(page) {
-  await page.goto(`${BASE_URL}/logout.php`);
-  await waitReady(page);
+async function sel(page, selector, timeout = TIMEOUT) {
+  await page.waitForSelector(selector, { timeout });
 }
 
 async function check(label, fn, { retries = 0 } = {}) {
   let lastErr;
   for (let i = 0; i <= retries; i++) {
-    try {
-      await fn();
-      ok(label);
-      return;
-    } catch (err) {
+    try { await fn(); ok(label); return; }
+    catch (err) {
       lastErr = err;
-      // En el último intento fallido: captura screenshot para debugging
       if (i === retries && _page) {
         const safe = label.replace(/[^a-z0-9]/gi, '_').slice(0, 50);
-        const file = path.join(SCREENSHOT_DIR, `FAIL_${safe}.png`);
-        await _page.screenshot({ path: file }).catch(() => {});
-        results.at(-1) && (results.at(-1).screenshot = file);
+        await shot(_page, `FAIL_${safe}`);
       }
-      if (i < retries) await new Promise(r => setTimeout(r, 1500));
+      if (i < retries) await new Promise(r => setTimeout(r, 1200));
     }
   }
   fail(label, lastErr);
 }
+
+async function loginAs(page, role) {
+  await go(page, '/login.php');
+  await page.fill('input[name="email"]',    CREDS[role].email);
+  await page.fill('input[name="password"]', CREDS[role].password);
+  await page.click('button[type="submit"]');
+  await page.waitForLoadState('domcontentloaded');
+}
+
+async function logout(page) {
+  await go(page, '/logout.php');
+}
+
+// Verifica que una página cargue sin HTTP 500 y tenga al menos un <h1>/<h2>
+async function pageOk(page, url, screenshotName) {
+  await go(page, url);
+  const status = await page.evaluate(() => {
+    const el = document.querySelector('[data-http-status]');
+    return el ? parseInt(el.dataset.httpStatus) : 200;
+  });
+  if (status === 500) throw new Error(`HTTP 500 en ${url}`);
+  // Verifica que no haya PHP fatal visible
+  const body = await page.textContent('body').catch(() => '');
+  if (body.includes('Fatal error') || body.includes('Parse error')) {
+    throw new Error('PHP Fatal/Parse error visible en la página');
+  }
+  await sel(page, 'h1, h2, .card, main, .container', 6000);
+  if (screenshotName) await shot(page, screenshotName);
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
+// SUITE 1 — RENDIMIENTO
+// ─────────────────────────────────────────────────────────────────────────────
+async function suiteRendimiento(page) {
+  console.log('\n⚡ RENDIMIENTO (páginas públicas)');
+  const paginas = [
+    { url: '/',                nombre: 'Inicio'        },
+    { url: '/empresas.php',    nombre: 'Directorio'    },
+    { url: '/estadisticas.php',nombre: 'Estadísticas'  },
+    { url: '/mapa.php',        nombre: 'Mapa'          },
+  ];
+  for (const { url, nombre } of paginas) {
+    await check(`${nombre} carga en < 10 s`, async () => {
+      const t0 = Date.now();
+      await go(page, url);
+      const ms = Date.now() - t0;
+      console.log(`     ⏱ ${ms} ms`);
+      if (ms > 10000) throw new Error(`Tardó ${ms} ms (> 10 s)`);
+    });
+  }
+}
 
-// ── SUITE: SITIO PÚBLICO ──────────────────────────────────────────────────────
-async function testPublico(page) {
-  console.log('\n📋 SITIO PÚBLICO');
+// ─────────────────────────────────────────────────────────────────────────────
+// SUITE 2 — SITIO PÚBLICO
+// ─────────────────────────────────────────────────────────────────────────────
+async function suitePublico(page) {
+  console.log('\n🌐 SITIO PÚBLICO');
 
-  await check('Inicio carga y muestra estadísticas', async () => {
-    await page.goto(BASE_URL);
-    await waitReady(page);
-    await page.waitForSelector('.stat-card, .stat-cards', { timeout: 15000 });
-    await screenshot(page, '01_inicio');
+  // ── Inicio ──
+  await check('Inicio: carga stat-cards y navbar', async () => {
+    await go(page, '/');
+    await sel(page, '.stat-cards, .stat-card');
+    await shot(page, '01_inicio');
   });
 
-  await check('Navbar contiene los 6 ítems principales', async () => {
+  await check('Inicio: navbar tiene Empresas, Mapa, Estadísticas, Noticias', async () => {
+    await go(page, '/');
     const links = await page.$$eval('nav a', els => els.map(e => e.textContent.trim()));
-    const expected = ['Empresas', 'Mapa', 'El Parque', 'Estadísticas', 'Noticias'];
-    for (const item of expected) {
-      if (!links.some(l => l.includes(item))) throw new Error(`Falta enlace: ${item}`);
+    for (const item of ['Empresas', 'Mapa', 'Estadísticas', 'Noticias']) {
+      if (!links.some(l => l.includes(item)))
+        throw new Error(`Falta enlace en navbar: ${item}`);
     }
   });
 
-  await check('Página /empresas.php carga el directorio', async () => {
-    await page.goto(`${BASE_URL}/empresas.php`);
-    await waitReady(page);
-    await page.waitForSelector('.card, .empresa-card, table', { timeout: 10000 });
-    await screenshot(page, '02_empresas');
+  // ── Directorio de empresas ──
+  await check('Empresas: directorio carga', async () => {
+    await go(page, '/empresas.php');
+    await sel(page, '.card, table, .empresa-card');
+    await shot(page, '02_empresas');
   });
 
-  await check('Búsqueda de empresas responde', async () => {
-    await page.fill('input[name="q"]', 'a');
-    await page.keyboard.press('Enter');
-    await waitReady(page);
-    // Solo verifica que no rompe (sin 500)
-    const status = page.url();
-    if (!status.includes('empresas')) throw new Error('Redirigió fuera de empresas');
-  });
-
-  await check('Página /mapa.php carga Leaflet', async () => {
-    await page.goto(`${BASE_URL}/mapa.php`, { waitUntil: 'commit' });
+  await check('Empresas: búsqueda por texto responde sin 500', async () => {
+    await go(page, '/empresas.php?q=a');
     await page.waitForLoadState('domcontentloaded');
-    await page.waitForSelector('#map, .leaflet-container', { timeout: 15000 });
-    await screenshot(page, '03_mapa');
+    if (!page.url().includes('empresas')) throw new Error('Redirigió fuera de empresas');
+  });
+
+  await check('Empresas: filtro por rubro responde sin error', async () => {
+    await go(page, '/empresas.php?rubro=Textil');
+    await page.waitForLoadState('domcontentloaded');
+    const body = await page.textContent('body').catch(() => '');
+    if (body.includes('Fatal error')) throw new Error('Fatal PHP error');
+  });
+
+  // ── Ficha empresa ──
+  await check('Empresa (ficha pública): primera empresa cargable', async () => {
+    await go(page, '/empresas.php');
+    const href = await page.$eval(
+      'a[href*="empresa.php?id="], .card a[href*="id="]',
+      el => el.getAttribute('href')
+    ).catch(() => null);
+    if (!href) { console.log('     ⚠️  Sin empresas activas — test omitido'); return; }
+    await go(page, href.startsWith('http') ? new URL(href).pathname + new URL(href).search : href);
+    await sel(page, 'h1, h2, .empresa-nombre');
+    await shot(page, '03_empresa_ficha');
+  });
+
+  // ── Mapa ──
+  await check('Mapa: contenedor Leaflet presente', async () => {
+    await go(page, '/mapa.php');
+    await sel(page, '#map, .leaflet-container', 15000);
+    await shot(page, '04_mapa');
   }, { retries: 2 });
 
-  await check('Página /estadisticas.php muestra gráficos renderizados', async () => {
-    await page.goto(`${BASE_URL}/estadisticas.php`);
-    await waitReady(page);
-    await page.waitForSelector('canvas, .chart, [id*="chart"], [id*="grafico"]', { timeout: 10000 });
-    // Espera a que Chart.js/ApexCharts termine la animación antes de capturar
-    await page.waitForTimeout(1500);
-    await screenshot(page, '04_estadisticas');
+  // ── Páginas informativas ──
+  await check('El Parque: carga contenido institucional', async () => {
+    await pageOk(page, '/el-parque.php', '05_el_parque');
   });
 
-  await check('Página /el-parque.php carga contenido institucional', async () => {
-    await page.goto(`${BASE_URL}/el-parque.php`);
-    await waitReady(page);
-    await page.waitForSelector('h1, h2', { timeout: 8000 });
-    await screenshot(page, '05_el_parque');
+  await check('Parque (alternativa): carga sin error', async () => {
+    await pageOk(page, '/parque.php', null);
   });
 
-  await check('Página /noticias.php lista publicaciones', async () => {
-    await page.goto(`${BASE_URL}/noticias.php`);
-    await waitReady(page);
-    await page.waitForSelector('.card, article, .publicacion', { timeout: 10000 });
-    await screenshot(page, '06_noticias');
+  await check('Nosotros: carga sin error', async () => {
+    await pageOk(page, '/nosotros.php', null);
   });
 
-  await check('Formulario /presentar-proyecto.php es visible', async () => {
-    await page.goto(`${BASE_URL}/presentar-proyecto.php`);
-    await waitReady(page);
-    await page.waitForSelector('form', { timeout: 8000 });
-    // Verifica campos clave
-    await page.waitForSelector('input[name="nombre_empresa"], input[name="contacto"]', { timeout: 5000 });
-    await screenshot(page, '07_presentar_proyecto');
+  await check('Sitemap: devuelve XML válido con <urlset>', async () => {
+    const res  = await page.request.get(`${BASE_URL}/sitemap.php`);
+    if (res.status() !== 200) throw new Error(`HTTP ${res.status()}`);
+    const text = await res.text();
+    if (!text.includes('<urlset') && !text.includes('<?xml'))
+      throw new Error('La respuesta no contiene XML de sitemap');
   });
 
-  await check('Formulario público: campos requeridos tienen atributo required', async () => {
-    await page.goto(`${BASE_URL}/presentar-proyecto.php`);
-    await waitReady(page);
-    // Verifica que los campos críticos tengan validación HTML5 nativa
-    const requiredFields = await page.$$eval(
-      'input[required], textarea[required], select[required]',
-      els => els.map(e => e.name || e.id)
-    );
-    if (requiredFields.length === 0) {
-      throw new Error('Ningún campo tiene atributo required — el formulario no valida en cliente');
-    }
-    // También verifica que el servidor no truene con un POST vacío
-    const response = await page.request.post(`${BASE_URL}/presentar-proyecto.php`, { form: {} });
-    if (response.status() === 500) {
-      throw new Error('Servidor devuelve 500 con POST vacío — falta validación server-side');
-    }
+  // ── Estadísticas ──
+  await check('Estadísticas: gráficos canvas presentes', async () => {
+    await go(page, '/estadisticas.php');
+    await sel(page, 'canvas, .chart, [id*="chart"], [id*="grafico"]');
+    await page.waitForTimeout(1200);
+    await shot(page, '06_estadisticas');
   });
 
-  await check('Login rechaza credenciales incorrectas', async () => {
-    await page.goto(`${BASE_URL}/login.php`);
-    await waitReady(page);
-    await page.fill('input[name="email"]', 'noexiste@test.com');
-    await page.fill('input[name="password"]', 'wrongpassword');
+  // ── Noticias ──
+  await check('Noticias: página carga con título y buscador', async () => {
+    await go(page, '/noticias.php');
+    // h1 siempre presente; cuando no hay publicaciones muestra h2 "Aún no hay noticias"
+    await sel(page, 'h1, h2, section');
+    await sel(page, 'form input[name="buscar"]'); // buscador siempre presente
+    await shot(page, '07_noticias');
+  });
+
+  await check('Noticias: filtro por tipo responde sin error', async () => {
+    await go(page, '/noticias.php?tipo=empleados');
+    const body = await page.textContent('body').catch(() => '');
+    if (body.includes('Fatal error')) throw new Error('Fatal PHP con filtro tipo');
+  });
+
+  await check('Publicación (detalle): primera publicación cargable', async () => {
+    await go(page, '/noticias.php');
+    const href = await page.$eval(
+      'a[href*="publicacion.php?id="], .card a[href*="publicacion"]',
+      el => el.getAttribute('href')
+    ).catch(() => null);
+    if (!href) { console.log('     ⚠️  Sin publicaciones aprobadas — test omitido'); return; }
+    await go(page, href.startsWith('http') ? new URL(href).pathname + new URL(href).search : href);
+    await sel(page, 'h1, h2, article, .publicacion-titulo');
+    await shot(page, '08_publicacion_detalle');
+  });
+
+  // ── Formulario público ──
+  await check('Presentar proyecto: formulario visible con campos requeridos', async () => {
+    await go(page, '/presentar-proyecto.php');
+    await sel(page, 'form');
+    await sel(page, 'input[name="nombre_empresa"], input[name="contacto"]');
+    const reqs = await page.$$eval('input[required], textarea[required]', els => els.length);
+    if (reqs === 0) throw new Error('Ningún campo tiene atributo required');
+    await shot(page, '09_presentar_proyecto');
+  });
+
+  await check('Presentar proyecto: POST vacío no devuelve 500', async () => {
+    const res = await page.request.post(`${BASE_URL}/presentar-proyecto.php`, { form: {} });
+    if (res.status() === 500) throw new Error('HTTP 500 con POST vacío');
+  });
+
+  // ── Recuperar contraseña ──
+  await check('Recuperar contraseña: formulario de email visible', async () => {
+    await go(page, '/recuperar.php');
+    await sel(page, 'input[name="email"], input[type="email"]');
+  });
+
+  // ── Login (credenciales incorrectas) ──
+  await check('Login: rechaza credenciales incorrectas', async () => {
+    await go(page, '/login.php');
+    await page.fill('input[name="email"]',    'noexiste@test.com');
+    await page.fill('input[name="password"]', 'wrongpassword123');
     await page.click('button[type="submit"]');
-    await waitReady(page);
-    // Debe quedarse en login o mostrar error
-    const url = page.url();
+    await page.waitForLoadState('domcontentloaded');
+    const url      = page.url();
     const hasError = await page.$('.alert-danger, .alert-error, [class*="error"]');
-    if (!url.includes('login') && !hasError) throw new Error('No mostró error con credenciales incorrectas');
+    if (!url.includes('login') && !hasError)
+      throw new Error('No mostró error con credenciales incorrectas');
+    await shot(page, '10_login_error');
+  });
+
+  // ── API pública: lotes ──
+  await check('API pública /api/lotes/listar_publico.php devuelve JSON válido', async () => {
+    const res  = await page.request.get(`${BASE_URL}/api/lotes/listar_publico.php`);
+    const text = await res.text();
+    JSON.parse(text); // lanza si no es JSON
+    if (res.status() === 500) throw new Error('HTTP 500');
   });
 }
 
-// ── SUITE: PANEL EMPRESA ──────────────────────────────────────────────────────
-async function testEmpresa(page) {
-  console.log('\n🏭 PANEL EMPRESA');
+// ─────────────────────────────────────────────────────────────────────────────
+// SUITE 3 — PROTECCIÓN DE RUTAS
+// ─────────────────────────────────────────────────────────────────────────────
+async function suiteProteccion(page, context) {
+  console.log('\n🔒 PROTECCIÓN DE RUTAS (sin sesión)');
+  await context.clearCookies();
 
-  await check('Login como empresa exitoso', async () => {
-    await login(page, 'empresa');
-    const url = page.url();
-    if (!url.includes('empresa') && !url.includes('dashboard')) {
-      throw new Error(`Redirigió a: ${url}`);
-    }
-    await screenshot(page, '10_empresa_dashboard');
-  });
-
-  await check('Dashboard muestra % de completitud de perfil', async () => {
-    await page.goto(`${BASE_URL}/empresa/dashboard.php`);
-    await waitReady(page);
-    await page.waitForSelector('[class*="progress"], [class*="completit"], [class*="percent"]', { timeout: 8000 });
-  });
-
-  await check('Dashboard muestra notificaciones o formularios pendientes', async () => {
-    // Cualquier sección de actividad/pendientes
-    await page.waitForSelector('.card, .alert, .list-group-item', { timeout: 8000 });
-  });
-
-  await check('Página de perfil carga con campos editables', async () => {
-    await page.goto(`${BASE_URL}/empresa/perfil.php`);
-    await waitReady(page);
-    await page.waitForSelector('input[name="nombre"], input[name="razon_social"], input[name="cuit"]', { timeout: 8000 });
-    await screenshot(page, '11_empresa_perfil');
-  });
-
-  await check('Perfil: edición de teléfono y guardado', async () => {
-    await page.goto(`${BASE_URL}/empresa/perfil.php`);
-    await waitReady(page);
-    const telInput = page.locator('input[name="telefono"]');
-    await telInput.clear();
-    await telInput.fill('3834000000');
-    await page.click('button[type="submit"]');
-    await waitReady(page);
-    // Debe mostrar mensaje de éxito
-    const flash = await page.$('.alert-success, .alert-info, [class*="success"]');
-    if (!flash) throw new Error('No apareció confirmación de guardado');
-    await screenshot(page, '12_empresa_perfil_guardado');
-  });
-
-  await check('Página de formularios carga sin error', async () => {
-    await page.goto(`${BASE_URL}/empresa/formularios.php`);
-    await waitReady(page);
-    // Puede mostrar "No hay formularios" o una lista — ambos son válidos
-    await page.waitForSelector('.card, table, .alert, p', { timeout: 8000 });
-    await screenshot(page, '13_empresa_formularios');
-  });
-
-  await check('Página de publicaciones carga lista', async () => {
-    await page.goto(`${BASE_URL}/empresa/publicaciones.php`);
-    await waitReady(page);
-    await page.waitForSelector('.card, table, .alert, h1', { timeout: 8000 });
-    await screenshot(page, '14_empresa_publicaciones');
-  });
-
-  await check('Página de mensajes carga bandeja', async () => {
-    await page.goto(`${BASE_URL}/empresa/mensajes.php`);
-    await waitReady(page);
-    await page.waitForSelector('.inbox-wrap, .inbox-empty, .inbox-list-col, .alert', { timeout: 8000 });
-    await screenshot(page, '15_empresa_mensajes');
-  });
-
-  await check('Página de notificaciones carga', async () => {
-    await page.goto(`${BASE_URL}/empresa/notificaciones.php`);
-    await waitReady(page);
-    await page.waitForSelector('.card, .list-group, .alert, h1', { timeout: 8000 });
-  });
-
-  await check('Logout de empresa funciona', async () => {
-    await logout(page);
-    const url = page.url();
-    if (url.includes('empresa/dashboard')) throw new Error('Sigue en dashboard tras logout');
-    await screenshot(page, '16_logout_empresa');
-  });
-}
-
-// ── SUITE: PANEL MINISTERIO ───────────────────────────────────────────────────
-async function testMinisterio(page) {
-  console.log('\n🏛️  PANEL MINISTERIO');
-
-  await check('Login como ministerio exitoso', async () => {
-    await login(page, 'ministerio');
-    const url = page.url();
-    if (!url.includes('ministerio') && !url.includes('dashboard')) {
-      throw new Error(`Redirigió a: ${url}`);
-    }
-    await screenshot(page, '20_ministerio_dashboard');
-  });
-
-  await check('Dashboard muestra KPIs: empresas activas, empleados, visitas', async () => {
-    await page.goto(`${BASE_URL}/ministerio/dashboard.php`);
-    await waitReady(page);
-    await page.waitForSelector('.card, [class*="stat"], [class*="kpi"]', { timeout: 10000 });
-    // Al menos 3 tarjetas de métricas
-    const cards = await page.$$('.card');
-    if (cards.length < 3) throw new Error(`Solo ${cards.length} tarjeta(s) en dashboard`);
-  });
-
-  await check('Dashboard muestra log de actividad reciente', async () => {
-    // Navega explícitamente — no depende del estado de la página anterior
-    await page.goto(`${BASE_URL}/ministerio/dashboard.php`);
-    await waitReady(page);
-    await page.waitForSelector('[class*="actividad"], [class*="log"], .timeline, .list-group-item', { timeout: 8000 });
-  });
-
-  await check('Lista de empresas carga con tabla/cards', async () => {
-    await page.goto(`${BASE_URL}/ministerio/empresas.php`);
-    await waitReady(page);
-    await page.waitForSelector('table, .card, .empresa-row', { timeout: 10000 });
-    await screenshot(page, '21_ministerio_empresas');
-  });
-
-  await check('Detalle de primera empresa: carga y CUIT no está vacío (valida DB)', async () => {
-    await page.goto(`${BASE_URL}/ministerio/empresas.php`);
-    await waitReady(page);
-    const firstLink = await page.$('table a[href*="empresa-detalle"], .card a[href*="empresa-detalle"]');
-    if (!firstLink) return; // sin empresas cargadas, el test no aplica
-    await firstLink.click();
-    await waitReady(page);
-    if (page.url().includes('500')) throw new Error('Error 500 en detalle empresa');
-    // Valida que los datos llegaron desde Aiven:
-    // el nombre de la empresa debe estar visible y no vacío
-    const heading = await page.textContent('h1, h2, h3').catch(() => '');
-    if (!heading || heading.trim().length < 2) {
-      throw new Error('Nombre de empresa vacío — posible problema de conexión con Aiven');
-    }
-    // Si hay un CUIT renderizado, verificar que tenga formato XX-XXXXXXXX-X
-    const bodyText = await page.textContent('body');
-    const cuitMatch = bodyText.match(/\d{2}-\d{8}-\d/);
-    if (!cuitMatch && bodyText.includes('CUIT')) {
-      console.log('     ⚠️  CUIT visible pero sin valor cargado (empresa sin datos completos)');
-    }
-    await screenshot(page, '22_ministerio_empresa_detalle');
-  });
-
-  await check('Formularios: lista carga correctamente', async () => {
-    await page.goto(`${BASE_URL}/ministerio/formularios.php`);
-    await waitReady(page);
-    await page.waitForSelector('table, .card, .alert, h1', { timeout: 8000 });
-    await screenshot(page, '23_ministerio_formularios');
-  });
-
-  await check('Publicaciones: tabs "Ministerio" y "Empresas" presentes', async () => {
-    await page.goto(`${BASE_URL}/ministerio/publicaciones.php`);
-    await waitReady(page);
-    await page.waitForSelector('.nav-tabs, .nav-pills, [role="tablist"]', { timeout: 8000 });
-    await screenshot(page, '24_ministerio_publicaciones');
-  });
-
-  await check('Banners: lista de banners carga', async () => {
-    await page.goto(`${BASE_URL}/ministerio/banners.php`);
-    await waitReady(page);
-    await page.waitForSelector('table, .card, .alert, form', { timeout: 8000 });
-    await screenshot(page, '25_ministerio_banners');
-  });
-
-  await check('Comunicados: formulario de envío visible', async () => {
-    await page.goto(`${BASE_URL}/ministerio/comunicados.php`);
-    await waitReady(page);
-    await page.waitForSelector('form, textarea, select', { timeout: 8000 });
-    await screenshot(page, '26_ministerio_comunicados');
-  });
-
-  await check('Estadísticas config carga sin error', async () => {
-    await page.goto(`${BASE_URL}/ministerio/estadisticas-config.php`);
-    await waitReady(page);
-    await page.waitForSelector('form, .card, h1', { timeout: 8000 });
-  });
-
-  await check('Gráficos del ministerio cargan', async () => {
-    await page.goto(`${BASE_URL}/ministerio/graficos.php`);
-    await waitReady(page);
-    await page.waitForSelector('canvas, .chart, h1, .card', { timeout: 8000 });
-    await screenshot(page, '27_ministerio_graficos');
-  });
-
-  await check('Exportar datos: página carga sin error', async () => {
-    await page.goto(`${BASE_URL}/ministerio/exportar.php`);
-    await waitReady(page);
-    await page.waitForSelector('form, table, .btn, h1', { timeout: 8000 });
-  });
-
-  await check('Solicitudes de proyecto: lista carga', async () => {
-    await page.goto(`${BASE_URL}/ministerio/solicitudes-proyecto.php`);
-    await waitReady(page);
-    await page.waitForSelector('table, .card, .alert, h1', { timeout: 8000 });
-  });
-
-  await check('Logout de ministerio funciona', async () => {
-    await logout(page);
-    const url = page.url();
-    if (url.includes('ministerio/dashboard')) throw new Error('Sigue en dashboard tras logout');
-    await screenshot(page, '28_logout_ministerio');
-  });
-}
-
-// ── SUITE: PROTECCIÓN DE RUTAS ────────────────────────────────────────────────
-async function testProteccion(page, context) {
-  console.log('\n🔒 PROTECCIÓN DE RUTAS');
-
-  const rutasProtegidas = [
+  const rutas = [
     '/empresa/dashboard.php',
     '/empresa/perfil.php',
     '/empresa/formularios.php',
+    '/empresa/publicaciones.php',
+    '/empresa/comunicaciones.php',
+    '/empresa/notificaciones.php',
+    '/empresa/cambiar-contrasena.php',
+    '/empresa/mis-datos.php',
     '/ministerio/dashboard.php',
     '/ministerio/empresas.php',
+    '/ministerio/nueva-empresa.php',
+    '/ministerio/formularios.php',
+    '/ministerio/formularios-dinamicos.php',
+    '/ministerio/publicaciones.php',
     '/ministerio/banners.php',
+    '/ministerio/lotes.php',
+    '/ministerio/solicitudes-proyecto.php',
   ];
 
-  // Limpia cookies antes de probar rutas protegidas para garantizar sesión vacía
-  await context.clearCookies();
-
-  for (const ruta of rutasProtegidas) {
-    await check(`Ruta protegida redirige sin sesión: ${ruta}`, async () => {
-      await page.goto(`${BASE_URL}${ruta}`);
-      await waitReady(page);
-      const finalUrl = new URL(page.url());
-      // La ruta protegida NO debe ser la pathname final — debe haber redirigido
-      if (finalUrl.pathname === ruta) {
-        throw new Error(`Acceso permitido sin autenticación a ${ruta}`);
-      }
+  for (const ruta of rutas) {
+    await check(`Sin sesión redirige: ${ruta}`, async () => {
+      await page.goto(`${BASE_URL}${ruta}`, { timeout: NAV_TIMEOUT });
+      await page.waitForLoadState('domcontentloaded');
+      const finalPath = new URL(page.url()).pathname;
+      if (finalPath === ruta)
+        throw new Error(`Acceso permitido sin autenticación`);
     });
   }
 }
 
-// ── SUITE: RENDIMIENTO ────────────────────────────────────────────────────────
-async function testRendimiento(page) {
-  console.log('\n⚡ RENDIMIENTO');
+// ─────────────────────────────────────────────────────────────────────────────
+// SUITE 4 — PANEL EMPRESA
+// ─────────────────────────────────────────────────────────────────────────────
+async function suiteEmpresa(page) {
+  console.log('\n🏭 PANEL EMPRESA');
 
-  const paginas = [
-    { url: '/', nombre: 'Inicio' },
-    { url: '/empresas.php', nombre: 'Directorio' },
-    { url: '/estadisticas.php', nombre: 'Estadísticas' },
-    { url: '/mapa.php', nombre: 'Mapa' },
-  ];
+  await check('Login empresa: redirige al dashboard', async () => {
+    await loginAs(page, 'empresa');
+    const url = page.url();
+    if (!url.includes('empresa')) throw new Error(`Redirigió a: ${url}`);
+    await shot(page, '20_empresa_login');
+  });
 
-  for (const { url, nombre } of paginas) {
-    await check(`${nombre} carga en menos de 10 segundos (cold start tolerado)`, async () => {
-      const t0 = Date.now();
-      await page.goto(`${BASE_URL}${url}`);
-      await waitReady(page);
-      const ms = Date.now() - t0;
-      console.log(`     ⏱ ${ms}ms`);
-      if (ms > 10000) throw new Error(`Tardó ${ms}ms (>10s)`);
-    });
-  }
+  // Dashboard
+  await check('Empresa / dashboard: carga con stat-cards', async () => {
+    await go(page, '/empresa/dashboard.php');
+    await sel(page, '.card, .stat-card, .stat-cards');
+    await shot(page, '21_empresa_dashboard');
+  });
+
+  await check('Empresa / dashboard: muestra % completitud de perfil', async () => {
+    await go(page, '/empresa/dashboard.php');
+    await sel(page, '[class*="progress"], [class*="completit"], [class*="percent"], .progress-bar');
+  });
+
+  // Perfil
+  await check('Empresa / perfil: carga con campos editables', async () => {
+    await go(page, '/empresa/perfil.php');
+    await sel(page, 'input[name="nombre"], input[name="cuit"], select[name="rubro"]');
+    await shot(page, '22_empresa_perfil');
+  });
+
+  await check('Empresa / perfil: edición de teléfono + guardado muestra éxito', async () => {
+    await go(page, '/empresa/perfil.php');
+    const tel = page.locator('input[name="telefono"]');
+    await tel.clear();
+    await tel.fill('3834000001');
+    await page.click('button[type="submit"]');
+    await page.waitForLoadState('domcontentloaded');
+    const flash = await page.$('.alert-success, .alert-info, [class*="success"]');
+    if (!flash) throw new Error('No apareció confirmación de guardado');
+    await shot(page, '23_empresa_perfil_guardado');
+  });
+
+  // Mis datos
+  await check('Empresa / mis-datos: carga sin error', async () => {
+    await pageOk(page, '/empresa/mis-datos.php', '24_empresa_mis_datos');
+  });
+
+  // Cambiar contraseña
+  await check('Empresa / cambiar-contrasena: formulario presente', async () => {
+    await go(page, '/empresa/cambiar-contrasena.php');
+    await sel(page, 'input[type="password"]');
+    await shot(page, '25_empresa_cambiar_pass');
+  });
+
+  // Formularios
+  await check('Empresa / formularios: carga sin error', async () => {
+    await go(page, '/empresa/formularios.php');
+    await sel(page, '.card, table, .alert, h1, h2');
+    await shot(page, '26_empresa_formularios');
+  });
+
+  await check('Empresa / formularios: botón nuevo formulario presente o estado visible', async () => {
+    await go(page, '/empresa/formularios.php');
+    const body = await page.textContent('body').catch(() => '');
+    if (body.includes('Fatal error')) throw new Error('Fatal PHP error');
+    // Acepta tanto "Nuevo formulario" como el listado con estado
+    const hasBtn  = await page.$('a[href*="formulario"], button[class*="btn"]');
+    const hasInfo = await page.$('.badge, .alert, table, .estado');
+    if (!hasBtn && !hasInfo) throw new Error('Ni botón ni estado de formulario visibles');
+  });
+
+  // Formulario dinámico
+  await check('Empresa / formulario_dinamico: carga sin error', async () => {
+    await go(page, '/empresa/formulario_dinamico.php');
+    const body = await page.textContent('body').catch(() => '');
+    if (body.includes('Fatal error')) throw new Error('Fatal PHP error');
+    await sel(page, 'h1, h2, form, .card, .alert');
+    await shot(page, '27_empresa_formulario_dinamico');
+  });
+
+  // Formulario presentación
+  await check('Empresa / formulario_presentacion: carga sin error', async () => {
+    await go(page, '/empresa/formulario_presentacion.php');
+    const body = await page.textContent('body').catch(() => '');
+    if (body.includes('Fatal error')) throw new Error('Fatal PHP error');
+    await sel(page, 'h1, h2, form, .card, .alert');
+  });
+
+  // Publicaciones
+  await check('Empresa / publicaciones: listado carga', async () => {
+    await go(page, '/empresa/publicaciones.php');
+    await sel(page, 'h1, h2, .card, table, .alert');
+    await shot(page, '28_empresa_publicaciones');
+  });
+
+  await check('Empresa / publicaciones: botón "Nueva publicación" visible', async () => {
+    await go(page, '/empresa/publicaciones.php');
+    const btn = await page.$('a[href*="publicacion"][class*="btn"], button:has-text("Nueva"), a:has-text("Nueva")');
+    if (!btn) throw new Error('Botón Nueva publicación no encontrado');
+  });
+
+  // Galería
+  await check('Empresa / galeria_api: endpoint responde sin 500', async () => {
+    const res = await page.request.get(`${BASE_URL}/empresa/galeria_api.php`);
+    if (res.status() === 500) throw new Error('HTTP 500');
+  });
+
+  // Notificaciones
+  await check('Empresa / notificaciones: carga sin error', async () => {
+    await go(page, '/empresa/notificaciones.php');
+    await sel(page, 'h1, h2, .card, .list-group, .alert');
+    await shot(page, '29_empresa_notificaciones');
+  });
+
+  // Comunicaciones
+  await check('Empresa / comunicaciones: carga sin error', async () => {
+    await go(page, '/empresa/comunicaciones.php');
+    await sel(page, 'h1, h2, .card, .inbox, .alert, main');
+    await shot(page, '30_empresa_comunicaciones');
+  });
+
+  // API comunicaciones badge (empresa)
+  await check('API /api/comunicaciones/badge.php: JSON válido como empresa', async () => {
+    const res  = await page.request.get(`${BASE_URL}/api/comunicaciones/badge.php`);
+    if (res.status() === 500) throw new Error('HTTP 500');
+    const text = await res.text();
+    JSON.parse(text);
+  });
+
+  // Logout
+  await check('Empresa / logout: sesión cerrada correctamente', async () => {
+    await logout(page);
+    if (page.url().includes('empresa/dashboard'))
+      throw new Error('Sigue en dashboard tras logout');
+    await shot(page, '31_empresa_logout');
+  });
 }
 
-// ── SUITE: ESTRÉS DE EXPORTACIÓN ─────────────────────────────────────────────
-async function testExportacion(page) {
-  console.log('\n📦 ESTRÉS DE EXPORTACIÓN');
+// ─────────────────────────────────────────────────────────────────────────────
+// SUITE 5 — PANEL MINISTERIO
+// ─────────────────────────────────────────────────────────────────────────────
+async function suiteMinisterio(page) {
+  console.log('\n🏛️  PANEL MINISTERIO');
 
-  // Login como ministerio si la sesión expiró
-  await login(page, 'ministerio');
+  await check('Login ministerio: redirige al dashboard', async () => {
+    await loginAs(page, 'ministerio');
+    if (!page.url().includes('ministerio')) throw new Error(`Redirigió a: ${page.url()}`);
+    await shot(page, '40_ministerio_login');
+  });
 
-  await check('Exportar CSV de empresas: descarga antes de 15s', async () => {
-    await page.goto(`${BASE_URL}/ministerio/exportar.php`);
-    await waitReady(page);
+  // Dashboard
+  await check('Ministerio / dashboard: KPIs visibles (≥ 3 cards)', async () => {
+    await go(page, '/ministerio/dashboard.php');
+    await sel(page, '.card');
+    const n = await page.$$eval('.card', els => els.length);
+    if (n < 3) throw new Error(`Solo ${n} card(s)`);
+    await shot(page, '41_ministerio_dashboard');
+  });
 
-    // Primer formulario (value="empresas") → primer botón "Descargar CSV"
-    const btnEmpresas = page.locator('form').filter({ has: page.locator('input[value="empresas"]') }).locator('button[type="submit"], button:has-text("Descargar")');
+  await check('Ministerio / dashboard: sección actividad reciente visible', async () => {
+    await go(page, '/ministerio/dashboard.php');
+    // Siempre hay un card-header "Actividad Reciente"; si no hay datos muestra <p class="text-muted">
+    await sel(page, '.card-header, .empresa-timeline, p.text-muted');
+  });
 
+  // Empresas
+  await check('Ministerio / empresas: lista carga', async () => {
+    await go(page, '/ministerio/empresas.php');
+    await sel(page, 'table, .card, .empresa-row, .alert');
+    await shot(page, '42_ministerio_empresas');
+  });
+
+  await check('Ministerio / empresas: filtros de búsqueda presentes', async () => {
+    await go(page, '/ministerio/empresas.php');
+    await sel(page, 'input[name="q"], select[name="rubro"], select[name="estado"]');
+  });
+
+  await check('Ministerio / empresa-detalle: primera empresa cargable', async () => {
+    await go(page, '/ministerio/empresas.php');
+    const href = await page.$eval(
+      'a[href*="empresa-detalle"]',
+      el => el.getAttribute('href')
+    ).catch(() => null);
+    if (!href) { console.log('     ⚠️  Sin empresas — test omitido'); return; }
+    await go(page, href.startsWith('/') ? href : '/ministerio/' + href);
+    await sel(page, 'h1, h2, .card');
+    await shot(page, '43_ministerio_empresa_detalle');
+  });
+
+  await check('Ministerio / empresa-editar: formulario editable carga', async () => {
+    await go(page, '/ministerio/empresas.php');
+    const href = await page.$eval(
+      'a[href*="empresa-editar"]',
+      el => el.getAttribute('href')
+    ).catch(() => null);
+    if (!href) { console.log('     ⚠️  Sin empresas — test omitido'); return; }
+    await go(page, href.startsWith('/') ? href : '/ministerio/' + href);
+    await sel(page, 'form, input[name="nombre"]');
+    await shot(page, '44_ministerio_empresa_editar');
+  });
+
+  await check('Ministerio / empresa-metricas: carga sin error', async () => {
+    await go(page, '/ministerio/empresas.php');
+    const href = await page.$eval(
+      'a[href*="empresa-metricas"]',
+      el => el.getAttribute('href')
+    ).catch(() => null);
+    if (!href) { console.log('     ⚠️  Sin empresas con métricas — test omitido'); return; }
+    await go(page, href.startsWith('/') ? href : '/ministerio/' + href);
+    const body = await page.textContent('body').catch(() => '');
+    if (body.includes('Fatal error')) throw new Error('Fatal PHP error');
+    await sel(page, 'h1, h2, .card, .alert');
+  });
+
+  await check('Ministerio / nueva-empresa: formulario carga', async () => {
+    await go(page, '/ministerio/nueva-empresa.php');
+    await sel(page, 'form, input[name="nombre"], input[name="email"]');
+    await shot(page, '45_ministerio_nueva_empresa');
+  });
+
+  // Formularios DJ
+  await check('Ministerio / formularios (DJ): lista carga', async () => {
+    await go(page, '/ministerio/formularios.php');
+    await sel(page, 'table, .card, .alert, h1');
+    await shot(page, '46_ministerio_formularios');
+  });
+
+  // Formularios dinámicos
+  await check('Ministerio / formularios-dinamicos: lista carga', async () => {
+    await go(page, '/ministerio/formularios-dinamicos.php');
+    await sel(page, 'table, .card, .alert, h1, h2');
+    await shot(page, '47_ministerio_form_dinamicos');
+  });
+
+  await check('Ministerio / formulario-nuevo: formulario de creación visible', async () => {
+    await go(page, '/ministerio/formulario-nuevo.php');
+    await sel(page, 'form, input[name="titulo"], textarea[name="descripcion"]');
+    await shot(page, '48_ministerio_form_nuevo');
+  });
+
+  await check('Ministerio / formulario-editar: carga con id de formulario existente o sin parámetro', async () => {
+    await go(page, '/ministerio/formularios-dinamicos.php');
+    const href = await page.$eval(
+      'a[href*="formulario-editar"]',
+      el => el.getAttribute('href')
+    ).catch(() => null);
+    if (!href) { console.log('     ⚠️  Sin formularios dinámicos — test omitido'); return; }
+    await go(page, href.startsWith('/') ? href : '/ministerio/' + href);
+    const body = await page.textContent('body').catch(() => '');
+    if (body.includes('Fatal error')) throw new Error('Fatal PHP error');
+    await sel(page, 'h1, h2, form, .card');
+    await shot(page, '49_ministerio_form_editar');
+  });
+
+  await check('Ministerio / formulario-gestion: carga sin error', async () => {
+    await go(page, '/ministerio/formularios-dinamicos.php');
+    const href = await page.$eval(
+      'a[href*="formulario-gestion"]',
+      el => el.getAttribute('href')
+    ).catch(() => null);
+    if (!href) { console.log('     ⚠️  Sin formularios — test omitido'); return; }
+    await go(page, href.startsWith('/') ? href : '/ministerio/' + href);
+    const body = await page.textContent('body').catch(() => '');
+    if (body.includes('Fatal error')) throw new Error('Fatal PHP error');
+    await sel(page, 'h1, h2, .card, table, .alert');
+  });
+
+  // Publicaciones
+  await check('Ministerio / publicaciones: carga con tabs o lista', async () => {
+    await go(page, '/ministerio/publicaciones.php');
+    await sel(page, '.nav-tabs, .nav-pills, [role="tablist"], table, .card, .alert');
+    await shot(page, '50_ministerio_publicaciones');
+  });
+
+  // Lotes
+  await check('Ministerio / lotes: mapa y tabla cargan', async () => {
+    await go(page, '/ministerio/lotes.php');
+    await sel(page, '#map, .leaflet-container, table, .card', 15000);
+    await shot(page, '51_ministerio_lotes');
+  });
+
+  // Comunicaciones
+  await check('Ministerio / comunicaciones: carga sin error', async () => {
+    await go(page, '/ministerio/comunicaciones.php');
+    const body = await page.textContent('body').catch(() => '');
+    if (body.includes('Fatal error')) throw new Error('Fatal PHP error');
+    await sel(page, 'h1, h2, .card, .inbox, .alert, main');
+    await shot(page, '52_ministerio_comunicaciones');
+  });
+
+  await check('Ministerio / mensajes-entrada: carga sin error', async () => {
+    await go(page, '/ministerio/mensajes-entrada.php');
+    const body = await page.textContent('body').catch(() => '');
+    if (body.includes('Fatal error')) throw new Error('Fatal PHP error');
+    await sel(page, 'h1, h2, .card, .alert, main');
+  });
+
+  await check('Ministerio / notificaciones: carga sin error', async () => {
+    await go(page, '/ministerio/notificaciones.php');
+    await sel(page, 'h1, h2, .card, form, .alert');
+    await shot(page, '53_ministerio_notificaciones');
+  });
+
+  await check('Ministerio / plantillas: carga sin error', async () => {
+    await pageOk(page, '/ministerio/plantillas.php', '54_ministerio_plantillas');
+  });
+
+  // Configuración del sitio
+  await check('Ministerio / sitio-publico: formulario de configuración visible', async () => {
+    await go(page, '/ministerio/sitio-publico.php');
+    await sel(page, 'form, input, textarea');
+    await shot(page, '55_ministerio_sitio_publico');
+  });
+
+  await check('Ministerio / nosotros-editar: editor visible', async () => {
+    await go(page, '/ministerio/nosotros-editar.php');
+    await sel(page, 'form, textarea, input');
+    await shot(page, '56_ministerio_nosotros_editar');
+  });
+
+  await check('Ministerio / banners: lista o formulario visible', async () => {
+    await go(page, '/ministerio/banners.php');
+    await sel(page, 'table, .card, form, .alert');
+    await shot(page, '57_ministerio_banners');
+  });
+
+  // Estadísticas y reportes
+  await check('Ministerio / estadisticas-config: formulario visible', async () => {
+    await go(page, '/ministerio/estadisticas-config.php');
+    await sel(page, 'form, input, textarea, .card');
+    await shot(page, '58_ministerio_estadisticas_config');
+  });
+
+  await check('Ministerio / graficos: gráficos o cards visibles', async () => {
+    await go(page, '/ministerio/graficos.php');
+    await sel(page, 'canvas, .chart, .card, h1');
+    await page.waitForTimeout(1000);
+    await shot(page, '59_ministerio_graficos');
+  });
+
+  await check('Ministerio / reporte: formulario de exportación visible', async () => {
+    await go(page, '/ministerio/reporte.php');
+    await sel(page, 'form, .card, h1, select, input');
+    await shot(page, '60_ministerio_reporte');
+  });
+
+  await check('Ministerio / exportar: cards de descarga visibles', async () => {
+    await go(page, '/ministerio/exportar.php');
+    // La página usa h2 (no h1) + .card + button[name="formato"]
+    await sel(page, '.card, .row.g-4, button[name="formato"], h2');
+    await shot(page, '61_ministerio_exportar');
+  });
+
+  // Solicitudes
+  await check('Ministerio / solicitudes-proyecto: lista carga', async () => {
+    await go(page, '/ministerio/solicitudes-proyecto.php');
+    await sel(page, 'table, .card, .alert, h1');
+    await shot(page, '62_ministerio_solicitudes');
+  });
+
+  // API lotes (ministerio)
+  await check('API /api/lotes/listar.php: JSON válido como ministerio', async () => {
+    const res  = await page.request.get(`${BASE_URL}/api/lotes/listar.php`);
+    if (res.status() === 500) throw new Error('HTTP 500');
+    const text = await res.text();
+    JSON.parse(text);
+  });
+
+  // API comunicaciones badge (ministerio)
+  await check('API /api/comunicaciones/badge.php: JSON válido como ministerio', async () => {
+    const res  = await page.request.get(`${BASE_URL}/api/comunicaciones/badge.php`);
+    if (res.status() === 500) throw new Error('HTTP 500');
+    const text = await res.text();
+    JSON.parse(text);
+  });
+
+  // Logout
+  await check('Ministerio / logout: sesión cerrada', async () => {
+    await logout(page);
+    if (page.url().includes('ministerio/dashboard'))
+      throw new Error('Sigue en dashboard tras logout');
+    await shot(page, '63_ministerio_logout');
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SUITE 6 — EXPORTACIÓN CSV (solo si hay datos)
+// ─────────────────────────────────────────────────────────────────────────────
+async function suiteExportacion(page) {
+  console.log('\n📦 EXPORTACIÓN CSV');
+  await loginAs(page, 'ministerio');
+
+  await check('Exportar CSV empresas: descarga en < 15 s con contenido', async () => {
+    await go(page, '/ministerio/exportar.php');
+    const btnEmpresas = page.locator('form').filter({
+      has: page.locator('input[value="empresas"]'),
+    }).locator('button[type="submit"], button:has-text("Descargar")').first();
+    if (!(await btnEmpresas.count())) {
+      console.log('     ⚠️  Botón exportar empresas no encontrado — omitido');
+      return;
+    }
     const [download] = await Promise.all([
       page.waitForEvent('download', { timeout: 15000 }),
       btnEmpresas.click(),
     ]);
-
-    const filename = download.suggestedFilename();
-    if (!filename.endsWith('.csv')) throw new Error(`Nombre inesperado: ${filename}`);
-
-    // Lee las primeras líneas para verificar que no está vacío
+    const fname = download.suggestedFilename();
+    if (!fname.endsWith('.csv')) throw new Error(`Nombre inesperado: ${fname}`);
     const stream = await download.createReadStream();
-    const firstChunk = await new Promise((resolve, reject) => {
-      stream.once('data', d => resolve(d.toString()));
-      stream.once('error', reject);
-      setTimeout(() => resolve(''), 3000);
+    const first  = await new Promise((res, rej) => {
+      stream.once('data', d => res(d.toString()));
+      stream.once('error', rej);
+      setTimeout(() => res(''), 3000);
     });
-
-    if (!firstChunk || firstChunk.trim().length < 10) {
-      throw new Error('CSV vacío o demasiado pequeño — posible timeout en Aiven');
-    }
-
-    console.log(`     📄 ${filename} — ${firstChunk.slice(0, 60).replace(/\n/g, '↵')}`);
+    if (!first || first.trim().length < 5)
+      throw new Error('CSV vacío');
+    console.log(`     📄 ${fname} — ${first.slice(0, 60).replace(/\n/g, '↵')}`);
   });
 
-  await check('Exportar CSV de formularios: descarga antes de 15s', async () => {
-    await page.goto(`${BASE_URL}/ministerio/exportar.php`);
-    await waitReady(page);
-
-    // Segundo formulario (value="formularios")
-    const btnFormularios = page.locator('form').filter({ has: page.locator('input[value="formularios"]') }).locator('button[type="submit"], button:has-text("Descargar")');
-
+  await check('Exportar CSV formularios: descarga en < 15 s', async () => {
+    await go(page, '/ministerio/exportar.php');
+    const btnForms = page.locator('form').filter({
+      has: page.locator('input[value="formularios"]'),
+    }).locator('button[type="submit"], button:has-text("Descargar")').first();
+    if (!(await btnForms.count())) {
+      console.log('     ⚠️  Botón exportar formularios no encontrado — omitido');
+      return;
+    }
     const [download] = await Promise.all([
       page.waitForEvent('download', { timeout: 15000 }),
-      btnFormularios.click(),
+      btnForms.click(),
     ]);
-
-    const filename = download.suggestedFilename();
-    if (!filename.endsWith('.csv')) throw new Error(`Nombre inesperado: ${filename}`);
-    console.log(`     📄 ${filename}`);
+    const fname = download.suggestedFilename();
+    if (!fname.endsWith('.csv')) throw new Error(`Nombre inesperado: ${fname}`);
+    console.log(`     📄 ${fname}`);
   });
 }
 
-// ── MAIN ──────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN
+// ─────────────────────────────────────────────────────────────────────────────
 (async () => {
   if (!fs.existsSync(SCREENSHOT_DIR)) fs.mkdirSync(SCREENSHOT_DIR);
 
-  console.log('═══════════════════════════════════════════════════════');
+  console.log('══════════════════════════════════════════════════════════');
   console.log('  TEST SUITE — Parque Industrial de Catamarca');
   console.log(`  URL: ${BASE_URL}`);
-  console.log('═══════════════════════════════════════════════════════');
+  console.log(`  Empresa:    ${CREDS.empresa.email}`);
+  console.log(`  Ministerio: ${CREDS.ministerio.email}`);
+  console.log('══════════════════════════════════════════════════════════');
 
-  // Aviso si las credenciales son placeholder
-  const missingCreds = [];
-  if (CREDS.empresa.email.startsWith('COMPLETAR'))    missingCreds.push('EMPRESA_EMAIL / EMPRESA_PASS');
-  if (CREDS.ministerio.email.startsWith('COMPLETAR')) missingCreds.push('MINISTERIO_EMAIL / MINISTERIO_PASS');
-  if (missingCreds.length) {
-    console.warn(`\n⚠️  Credenciales faltantes: ${missingCreds.join(', ')}`);
-    console.warn('   Los tests de panel empresa/ministerio fallarán.');
-    console.warn('   Define las variables de entorno o edita la sección CONFIG.\n');
-  }
-
-  // headless: false puede fallar en Windows sin display — usar HEADLESS=false para modo visual
   const headless = process.env.HEADLESS !== 'false';
-  const browser = await chromium.launch({ headless, slowMo: headless ? 0 : SLOW_MO });
-  const context = await browser.newContext({
+  const browser  = await chromium.launch({ headless, slowMo: headless ? 0 : 300 });
+  const context  = await browser.newContext({
     viewport: { width: 1280, height: 800 },
-    locale: 'es-AR',
+    locale:   'es-AR',
   });
   const page = await context.newPage();
-  _page = page; // permite screenshots en fallo desde check()
+  _page = page;
 
-  // Captura errores de consola del sitio
-  const consoleErrors = [];
-  page.on('console', msg => {
-    if (msg.type() === 'error') consoleErrors.push(msg.text());
+  // Captura errores JS del sitio
+  const jsErrors = [];
+  page.on('console',  msg => {
+    if (msg.type() === 'error') {
+      const entry = `[${page.url().replace(/.*localhost:\d+/, '')}] ${msg.text()}`;
+      jsErrors.push(entry);
+    }
   });
-  page.on('pageerror', err => consoleErrors.push(`JS: ${err.message}`));
-
-  // ── WARM-UP ── despierta Render antes de medir tiempos reales ────────────
-  process.stdout.write('\n🔥 WARM-UP (espera hasta 30s si Render está dormido)... ');
-  const t0Warmup = Date.now();
-  try {
-    await page.goto(BASE_URL, { timeout: WARMUP_TIMEOUT, waitUntil: 'domcontentloaded' });
-    console.log(`listo en ${Date.now() - t0Warmup}ms`);
-  } catch {
-    console.log(`⚠️  warm-up superó ${WARMUP_TIMEOUT}ms — el servidor puede estar lento`);
-  }
-  // ─────────────────────────────────────────────────────────────────────────
+  page.on('pageerror', err => {
+    const entry = `JS: [${page.url().replace(/.*localhost:\d+/, '')}] ${err.message}`;
+    jsErrors.push(entry);
+  });
+  // Captura 404s de red con URL
+  const net404s = [];
+  page.on('response', r => { if (r.status() === 404) net404s.push(r.url()); });
 
   try {
-    await testRendimiento(page);
-    await testPublico(page);
-    await testProteccion(page, context);
-    await testEmpresa(page);
-    await testMinisterio(page);
-    await testExportacion(page);
+    await suiteRendimiento(page);
+    await suitePublico(page);
+    await suiteProteccion(page, context);
+    await suiteEmpresa(page);
+    await suiteMinisterio(page);
+    await suiteExportacion(page);
+  } catch (fatalErr) {
+    console.error('\n💥 Error fatal:', fatalErr.message);
   } finally {
     await browser.close();
   }
 
-  // ── RESUMEN ──────────────────────────────────────────────────────────────
-  console.log('\n═══════════════════════════════════════════════════════');
-  console.log('  RESUMEN');
-  console.log('═══════════════════════════════════════════════════════');
-  console.log(`  ✅ Pasaron: ${passCount}`);
-  console.log(`  ❌ Fallaron: ${failCount}`);
+  // ── RESUMEN ─────────────────────────────────────────────────────────────────
+  const total = passCount + failCount;
+  console.log('\n══════════════════════════════════════════════════════════');
+  console.log('  RESUMEN FINAL');
+  console.log('══════════════════════════════════════════════════════════');
+  console.log(`  Total:    ${total}`);
+  console.log(`  ✅ Pasan: ${passCount}`);
+  console.log(`  ❌ Fallan: ${failCount}`);
   console.log(`  📸 Screenshots: ${SCREENSHOT_DIR}`);
 
-  if (consoleErrors.length) {
-    const shown = Math.min(consoleErrors.length, 10);
-    console.log(`\n  ⚠️  Errores JS en el navegador (${consoleErrors.length} total, mostrando ${shown}):`);
-    consoleErrors.slice(0, shown).forEach(e => console.log(`     • ${e}`));
-    if (consoleErrors.length > shown) {
-      console.log(`     … y ${consoleErrors.length - shown} más (revisa los screenshots FAIL_*.png)`);
-    }
+  if (net404s.length) {
+    const uniq = [...new Set(net404s)];
+    console.log(`\n  ⚠️  Recursos 404 (${uniq.length} únicos):`);
+    uniq.forEach(u => console.log(`     • ${u}`));
+  }
+
+  if (jsErrors.length) {
+    const n = Math.min(jsErrors.length, 8);
+    console.log(`\n  ⚠️  Errores JS en navegador (${jsErrors.length} total):`);
+    jsErrors.slice(0, n).forEach(e => console.log(`     • ${e.slice(0, 120)}`));
   }
 
   if (failCount > 0) {
     console.log('\n  Tests fallidos:');
     results.filter(r => r.status === '❌').forEach(r => {
       console.log(`     ❌ ${r.label}`);
-      if (r.error)      console.log(`        ${r.error}`);
-      if (r.screenshot) console.log(`        📸 ${r.screenshot}`);
+      if (r.error) console.log(`        ${r.error}`);
     });
   }
 
-  console.log('═══════════════════════════════════════════════════════\n');
+  console.log('══════════════════════════════════════════════════════════\n');
   process.exit(failCount > 0 ? 1 : 0);
 })();

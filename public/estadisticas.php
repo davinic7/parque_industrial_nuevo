@@ -103,9 +103,13 @@ require_once BASEPATH . '/includes/header.php';
 .stat-box h3 { font-size: 1rem; color: var(--gray-600); margin-bottom: 15px; border-bottom: 2px solid var(--gray-200); padding-bottom: 10px; }
 .chart-box { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); margin-bottom: 20px; }
 .chart-title { font-size: 1rem; color: var(--primary); font-weight: 600; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid var(--gray-200); }
-.progress-custom { height: 28px; border-radius: 6px; margin-bottom: 10px; background: #eee; overflow: visible; position: relative; }
-.progress-custom .bar { height: 100%; border-radius: 6px; display: flex; align-items: center; padding-left: 10px; color: #fff; font-weight: 500; font-size: 0.85rem; }
-.progress-custom .count { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-weight: 600; color: #333; }
+.rubro-item { margin-bottom: 14px; }
+.rubro-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+.rubro-nombre { display: flex; align-items: center; gap: 8px; font-size: 0.88rem; font-weight: 600; color: #333; }
+.rubro-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+.rubro-count { font-size: 0.88rem; font-weight: 700; color: #555; background: #f0f0f0; border-radius: 20px; padding: 1px 10px; }
+.rubro-track { height: 10px; background: #e9ecef; border-radius: 99px; overflow: hidden; }
+.rubro-fill { height: 100%; border-radius: 99px; min-width: 6px; transition: width 0.5s ease; }
 </style>
 
 <?php if (in_array('header', $visibles)): ?>
@@ -146,12 +150,21 @@ require_once BASEPATH . '/includes/header.php';
             <div class="col-lg-6">
                 <div class="chart-box h-100">
                     <div class="chart-title"><i class="bi bi-bar-chart me-2"></i>DISTRIBUCIÓN POR RUBRO</div>
-                    <?php foreach ($rubros_data as $rubro): ?>
-                    <div class="progress-custom">
-                        <div class="bar" style="width: <?= $total_empresas > 0 ? min(100, ($rubro['total_empresas'] / $total_empresas * 100)) : 0 ?>%; background: <?= $rubro['color'] ?? '#3498db' ?>;">
-                            <?= e($rubro['nombre']) ?>
+                    <?php foreach ($rubros_data as $rubro):
+                        $pct = $total_empresas > 0 ? min(100, round($rubro['total_empresas'] / $total_empresas * 100)) : 0;
+                        $color = $rubro['color'] ?? '#3498db';
+                    ?>
+                    <div class="rubro-item">
+                        <div class="rubro-header">
+                            <span class="rubro-nombre">
+                                <span class="rubro-dot" style="background:<?= $color ?>;"></span>
+                                <?= e($rubro['nombre']) ?>
+                            </span>
+                            <span class="rubro-count"><?= $rubro['total_empresas'] ?></span>
                         </div>
-                        <span class="count"><?= $rubro['total_empresas'] ?></span>
+                        <div class="rubro-track">
+                            <div class="rubro-fill" style="width:<?= $pct ?>%; background:<?= $color ?>;"></div>
+                        </div>
                     </div>
                     <?php endforeach; ?>
                 </div>

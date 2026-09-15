@@ -70,6 +70,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verify_csrf($_POST[CSRF_TOKEN_NAME]
             foreach ($datos as $row) {
                 fputcsv($output, array_values($row), ';');
             }
+            $terminos_csv = get_config('terminos_legales_exportaciones', '');
+            if ($terminos_csv !== '') {
+                fputcsv($output, [], ';');
+                fputcsv($output, ['Términos legales: ' . $terminos_csv], ';');
+            }
             fclose($output);
             exit;
         }
@@ -90,6 +95,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verify_csrf($_POST[CSRF_TOKEN_NAME]
                 echo '<td>' . htmlspecialchars((string) $val) . '</td>';
             }
             echo '</tr>';
+        }
+        $terminos_export = get_config('terminos_legales_exportaciones', '');
+        if ($terminos_export !== '') {
+            echo '<tr><td colspan="' . count($headers) . '" style="padding:10px;font-size:9pt;color:#666;border-top:2px solid #1a5276;">';
+            echo '<strong>Términos legales:</strong><br>' . nl2br(htmlspecialchars($terminos_export));
+            echo '</td></tr>';
         }
         echo '</table></body></html>';
         exit;

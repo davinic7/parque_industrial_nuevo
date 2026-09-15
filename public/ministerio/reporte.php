@@ -322,6 +322,16 @@ endif;
     </table>
     <?php endif; ?>
 
+    <?php
+    $terminos_export = get_config('terminos_legales_exportaciones', '');
+    if ($terminos_export !== ''):
+    ?>
+    <div style="margin-top:20px; padding:12px 16px; border:1px solid #d0d0d0; border-radius:6px; font-size:9px; color:#555; background:#fafafa;">
+        <strong>Términos legales:</strong><br>
+        <?= nl2br(e($terminos_export)) ?>
+    </div>
+    <?php endif; ?>
+
     <div class="footer">
         Parque Industrial de Catamarca — Ministerio de Produccion<br>
         Reporte generado automaticamente el <?= date('d/m/Y') ?> a las <?= date('H:i') ?>

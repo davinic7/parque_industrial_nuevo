@@ -16,7 +16,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
     
-    if (!$error && (empty($email) || empty($password))) {
+    if (!$error && !verify_recaptcha()) {
+        $error = 'Debe completar la verificación de seguridad (reCAPTCHA).';
+    } elseif (!$error && (empty($email) || empty($password))) {
         $error = 'Complete todos los campos';
     } elseif (!$error) {
         $result = $auth->login($email, $password);
@@ -136,6 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <label class="form-label">Contraseña</label>
                 <input type="password" name="password" class="form-control" autocomplete="current-password" required>
             </div>
+            <?= recaptcha_field() ?>
             <button type="submit" class="btn btn-login">Ingresar</button>
         </form>
 
@@ -145,5 +148,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
     <a href="<?= PUBLIC_URL ?>/" class="back-link"><i class="bi bi-arrow-left me-1"></i>Volver al inicio</a>
 </div>
+<?= recaptcha_script() ?>
 </body>
 </html>

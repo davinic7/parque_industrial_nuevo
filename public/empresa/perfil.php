@@ -44,6 +44,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $direccion     = trim($_POST['direccion'] ?? '');
                 $latitud       = !empty($_POST['latitud'])  ? (float)$_POST['latitud']  : null;
                 $longitud      = !empty($_POST['longitud']) ? (float)$_POST['longitud'] : null;
+                $dentro_parque = !empty($_POST['dentro_parque']) && $_POST['dentro_parque'] === '1';
+                $lote_declarado_input = trim($_POST['lote_declarado'] ?? '');
+                $current_lote_estado = $datos_anteriores['lote_solicitud_estado'] ?? 'sin_solicitud';
+                if ($current_lote_estado === 'asignado') {
+                    $lote_guardar       = $datos_anteriores['lote_declarado'];
+                    $lote_estado_guardar = 'asignado';
+                } elseif ($dentro_parque && $lote_declarado_input !== '') {
+                    $lote_guardar       = $lote_declarado_input;
+                    $lote_estado_guardar = 'pendiente';
+                } else {
+                    $lote_guardar       = null;
+                    $lote_estado_guardar = 'sin_solicitud';
+                }
                 $telefono      = trim($_POST['telefono'] ?? '');
                 $email_contacto = trim($_POST['email_contacto'] ?? '');
                 $contacto_nombre = trim($_POST['contacto_nombre'] ?? '');
@@ -88,7 +101,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             descripcion = ?, direccion = ?,
                             latitud = ?, longitud = ?,
                             telefono = ?, email_contacto = ?, contacto_nombre = ?,
-                            sitio_web = ?, facebook = ?, instagram = ?, logo = ?
+                            sitio_web = ?, facebook = ?, instagram = ?, logo = ?,
+                            lote_declarado = ?, lote_solicitud_estado = ?
                         WHERE id = ?
                     ")->execute([
                         $nombre, $razon_social, $cuit_guardar, $rubro,
@@ -96,6 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $latitud, $longitud,
                         $telefono, $email_contacto, $contacto_nombre,
                         $sitio_web, $facebook, $instagram, $logo_filename,
+                        $lote_guardar, $lote_estado_guardar,
                         $empresa_id
                     ]);
 
@@ -120,6 +135,16 @@ if (!$empresa) {
     redirect('dashboard.php');
 }
 
+// Info del lote ya asignado por el ministerio (si existe)
+$lote_asignado_info = null;
+if (($empresa['lote_solicitud_estado'] ?? '') === 'asignado') {
+    try {
+        $st = $db->prepare("SELECT numero_lote, sector FROM lotes WHERE empresa_id = ? LIMIT 1");
+        $st->execute([$empresa_id]);
+        $lote_asignado_info = $st->fetch() ?: null;
+    } catch (Exception $e) {}
+}
+
 $csrf_msg = 'Token de seguridad inválido. Recargue la página.';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && (!empty($field_errors) || ($error !== '' && $error !== $csrf_msg))) {
     foreach (['nombre', 'razon_social', 'cuit', 'rubro', 'descripcion', 'direccion',
@@ -138,7 +163,7 @@ $rubros = $stmt->fetchAll(PDO::FETCH_COLUMN);
 $galeria_imagenes = [];
 try {
     $db->query("SELECT 1 FROM empresa_imagenes LIMIT 1");
-    $stmt = $db->prepare("SELECT id, imagen FROM empresa_imagenes WHERE empresa_id = ? ORDER BY orden ASC, id ASC");
+    $stmt = $db->prepare("SELECT id, url AS imagen FROM empresa_imagenes WHERE empresa_id = ? ORDER BY orden ASC, id ASC");
     $stmt->execute([$empresa_id]);
     $galeria_imagenes = $stmt->fetchAll();
 } catch (Exception $e) {
@@ -164,7 +189,7 @@ require_once BASEPATH . '/includes/empresa_layout_header.php';
     line-height: 1; font-size: .65rem;
     border-radius: 50%;
 }
-.map-preview-box { height: 220px; border-radius: 8px; overflow: hidden; }
+.map-preview-box { height: 300px; border-radius: 8px; overflow: hidden; }
 .upload-drop-zone {
     border: 2px dashed #dee2e6; border-radius: 8px;
     padding: 2rem 1rem; text-align: center; cursor: pointer;
@@ -260,38 +285,81 @@ require_once BASEPATH . '/includes/empresa_layout_header.php';
                                placeholder="Ej. Calle Industrial 123, Parque Industrial">
                     </div>
 
-                    <!-- Mapa siempre visible -->
+                    <!-- Mapa picker -->
                     <label class="form-label">Ubicación en el mapa</label>
-                    <p class="text-muted small mb-2">Hacé clic en el mapa para marcar tu posición. Podés arrastrar el marcador para ajustar.</p>
-                    <div id="mapPicker" class="map-preview-box mb-2"></div>
+                    <p class="text-muted small mb-2">Hacé clic en el mapa para marcar tu posición, o ingresá las coordenadas manualmente. Podés arrastrar el marcador para ajustar.</p>
+                    <div id="mapPicker" class="map-preview-box mb-3"></div>
 
-                    <!-- Coords display (aparece al seleccionar) -->
-                    <div id="coordsDisplay" class="<?= ($empresa['latitud'] && $empresa['longitud']) ? '' : 'd-none' ?> mb-2">
-                        <div class="d-flex align-items-center gap-3 flex-wrap">
-                            <span class="badge bg-light text-dark border px-3 py-2 fs-6">
-                                <i class="fa-solid fa-location-dot text-danger me-1"></i>
-                                <span id="coordLat"><?= $empresa['latitud'] ? number_format((float)$empresa['latitud'], 6) : '' ?></span>,
-                                <span id="coordLng"><?= $empresa['longitud'] ? number_format((float)$empresa['longitud'], 6) : '' ?></span>
-                            </span>
-                            <!-- Botones compartir -->
-                            <div class="d-flex gap-2 flex-wrap">
-                                <a id="btnGoogleMaps" href="#" target="_blank" rel="noopener"
-                                   class="btn btn-sm btn-outline-secondary">
-                                    <i class="fa-solid fa-map me-1"></i>Google Maps
-                                </a>
-                                <a id="btnWhatsApp" href="#" target="_blank" rel="noopener"
-                                   class="btn btn-sm btn-outline-success">
-                                    <i class="fa-brands fa-whatsapp me-1"></i>WhatsApp
-                                </a>
-                                <button type="button" id="btnCopiarCoords" class="btn btn-sm btn-outline-secondary">
-                                    <i class="fa-regular fa-copy me-1"></i>Copiar enlace
-                                </button>
-                            </div>
+                    <!-- Coordenadas visibles y editables (sincronizan con el mapa) -->
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold mb-1">Latitud</label>
+                            <input type="number" step="any" name="latitud" id="latitud"
+                                   class="form-control form-control-sm"
+                                   placeholder="-28.533..."
+                                   value="<?= e($empresa['latitud'] ?? '') ?>">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold mb-1">Longitud</label>
+                            <input type="number" step="any" name="longitud" id="longitud"
+                                   class="form-control form-control-sm"
+                                   placeholder="-65.801..."
+                                   value="<?= e($empresa['longitud'] ?? '') ?>">
                         </div>
                     </div>
 
-                    <input type="hidden" name="latitud"  id="latitud"  value="<?= e($empresa['latitud'] ?? '') ?>">
-                    <input type="hidden" name="longitud" id="longitud" value="<?= e($empresa['longitud'] ?? '') ?>">
+                    <!-- Botones de compartir (visibles cuando hay coords) -->
+                    <div id="coordsDisplay" class="<?= ($empresa['latitud'] && $empresa['longitud']) ? '' : 'd-none' ?> mb-1">
+                        <div class="d-flex gap-2 flex-wrap">
+                            <a id="btnGoogleMaps" href="#" target="_blank" rel="noopener"
+                               class="btn btn-sm btn-outline-secondary">
+                                <i class="fa-solid fa-map me-1"></i>Google Maps
+                            </a>
+                            <a id="btnWhatsApp" href="#" target="_blank" rel="noopener"
+                               class="btn btn-sm btn-outline-success">
+                                <i class="fa-brands fa-whatsapp me-1"></i>WhatsApp
+                            </a>
+                            <button type="button" id="btnCopiarCoords" class="btn btn-sm btn-outline-secondary">
+                                <i class="fa-regular fa-copy me-1"></i>Copiar enlace
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Sección de lote: visible solo si coords están dentro del parque (JS la muestra) -->
+                    <div id="sectionLote" class="mt-3 border-top pt-3 d-none">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="fa-solid fa-industry text-success fa-sm"></i>
+                            <strong class="text-success">Tu ubicación está dentro del Parque Industrial</strong>
+                        </div>
+
+                        <!-- Estado: asignado por ministerio -->
+                        <div id="loteAsignadoAlert" class="alert alert-success py-2 mb-0 d-none">
+                            <i class="fa-solid fa-circle-check me-1"></i>
+                            Tu lote fue asignado: <strong><?= e($lote_asignado_info['numero_lote'] ?? '') ?></strong>
+                            <?php if (!empty($lote_asignado_info['sector'])): ?>
+                            — Sector <?= e($lote_asignado_info['sector']) ?>
+                            <?php endif; ?>
+                            <span class="badge bg-success ms-1">Confirmado</span>
+                        </div>
+
+                        <!-- Estado: pendiente o sin_solicitud → mostrar input -->
+                        <div id="loteInputWrap" class="d-none">
+                            <?php if (($empresa['lote_solicitud_estado'] ?? 'sin_solicitud') === 'pendiente'): ?>
+                            <div class="alert alert-warning py-2 px-3 small mb-2">
+                                <i class="fa-solid fa-clock me-1"></i>
+                                Solicitud "<strong><?= e($empresa['lote_declarado'] ?? '') ?></strong>" pendiente de confirmación por el ministerio. Podés actualizar el número abajo.
+                            </div>
+                            <?php else: ?>
+                            <p class="text-muted small mb-1">Si conocés tu número de lote, ingresalo. El ministerio lo confirmará y asignará el polígono en el mapa.</p>
+                            <?php endif; ?>
+                            <input type="text" id="inputLoteDeclarado" name="lote_declarado"
+                                   class="form-control form-control-sm"
+                                   value="<?= e($empresa['lote_declarado'] ?? '') ?>"
+                                   placeholder="Ej: A-3, L-12, Lote 7..." maxlength="50">
+                            <small class="text-muted">Dejá vacío si no sabés tu número de lote aún.</small>
+                        </div>
+                    </div>
+                    <input type="hidden" name="dentro_parque" id="dentroPque" value="0">
                 </div>
             </div>
 
@@ -415,6 +483,27 @@ require_once BASEPATH . '/includes/empresa_layout_header.php';
     </div>
 </form>
 
+<!-- Modal advertencia: pin fuera del parque con lote pendiente -->
+<div class="modal fade" id="modalLotePerdido" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h6 class="modal-title"><i class="fa-solid fa-triangle-exclamation text-warning me-2"></i>Solicitud de lote</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body pt-1 small">
+                Tu ubicación está <strong>fuera del Parque Industrial</strong>. Si guardás, tu solicitud de lote
+                "<strong id="lotePerdidoNumero"></strong>" se cancelará y tendrás que volver a declararla.
+                <br><br>¿Querés guardar igual?
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-warning btn-sm" id="btnConfirmarGuardar">Guardar igualmente</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Modal Galería (AJAX) -->
 <div class="modal fade" id="modalGaleria" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
@@ -467,13 +556,14 @@ require_once BASEPATH . '/includes/empresa_layout_header.php';
 <?php
 $pu      = htmlspecialchars(PUBLIC_URL, ENT_QUOTES, 'UTF-8');
 $js_cfg  = json_encode([
-    'csrfName'  => CSRF_TOKEN_NAME,
-    'csrfVal'   => $_SESSION[CSRF_TOKEN_NAME] ?? '',
-    'defLat'    => (float) MAP_DEFAULT_LAT,
-    'defLng'    => (float) MAP_DEFAULT_LNG,
-    'hasCoords' => !empty($empresa['latitud']) && !empty($empresa['longitud']),
-    'initLat'   => (float)($empresa['latitud'] ?? 0),
-    'initLng'   => (float)($empresa['longitud'] ?? 0),
+    'csrfName'   => CSRF_TOKEN_NAME,
+    'csrfVal'    => $_SESSION[CSRF_TOKEN_NAME] ?? '',
+    'defLat'     => (float) MAP_DEFAULT_LAT,
+    'defLng'     => (float) MAP_DEFAULT_LNG,
+    'hasCoords'  => !empty($empresa['latitud']) && !empty($empresa['longitud']),
+    'initLat'    => (float)($empresa['latitud'] ?? 0),
+    'initLng'    => (float)($empresa['longitud'] ?? 0),
+    'loteEstado' => $empresa['lote_solicitud_estado'] ?? 'sin_solicitud',
 ]);
 $extra_scripts = '<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>'
     . '<script src="' . $pu . '/js/parque-leaflet.js"></script>'
@@ -515,40 +605,85 @@ $extra_scripts = '<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/l
     const initZoom = C.hasCoords ? 16 : 14;
 
     const map = L.map('mapPicker').setView([initLat, initLng], initZoom);
-    ParqueLeaflet.addSatelliteLayer(map);
+    var capaSat = ParqueLeaflet.addSatelliteLayer(map);
+    map.setMinZoom(7);
+    map.setMaxBounds(null);
+    var capaOsm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    });
+    L.control.layers({ 'Satélite': capaSat, 'Mapa': capaOsm }, {}, { position: 'topright', collapsed: false }).addTo(map);
     ParqueLeaflet.addParquePolygon(map);
 
     let marker = null;
 
-    function applyCoords(lat, lng) {
-        document.getElementById('latitud').value  = lat.toFixed(8);
-        document.getElementById('longitud').value = lng.toFixed(8);
-        document.getElementById('coordLat').textContent = lat.toFixed(6);
-        document.getElementById('coordLng').textContent = lng.toFixed(6);
-        updateShareLinks(lat, lng);
-        document.getElementById('coordsDisplay').classList.remove('d-none');
+    /* Detección dentro/fuera del polígono del parque (ray-casting) */
+    function pointInPark(lat, lng) {
+        var poly = ParqueLeaflet.PANTANILLO_POLYGON;
+        var inside = false;
+        for (var i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+            var xi = poly[i][0], yi = poly[i][1];
+            var xj = poly[j][0], yj = poly[j][1];
+            if (((yi > lng) !== (yj > lng)) &&
+                (lat < (xj - xi) * (lng - yi) / (yj - yi) + xi)) {
+                inside = !inside;
+            }
+        }
+        return inside;
+    }
+
+    /* Muestra/oculta la sección de lote según si las coords están dentro del parque */
+    function updateLoteSection(lat, lng) {
+        var inside = pointInPark(lat, lng);
+        document.getElementById('sectionLote').classList.toggle('d-none', !inside);
+        document.getElementById('dentroPque').value = inside ? '1' : '0';
+        if (!inside) return;
+        var estado = C.loteEstado;
+        document.getElementById('loteAsignadoAlert').classList.toggle('d-none', estado !== 'asignado');
+        document.getElementById('loteInputWrap').classList.toggle('d-none', estado === 'asignado');
     }
 
     function updateShareLinks(lat, lng) {
-        const mapsUrl = 'https://www.google.com/maps?q=' + lat.toFixed(6) + ',' + lng.toFixed(6);
-        const waText  = encodeURIComponent('\u{1F4CD} Ubicaci\u{F3}n Parque Industrial: ' + mapsUrl);
+        var mapsUrl = 'https://www.google.com/maps?q=' + lat.toFixed(6) + ',' + lng.toFixed(6);
+        var waText  = encodeURIComponent('📍 Ubicación Parque Industrial: ' + mapsUrl);
         document.getElementById('btnGoogleMaps').href = mapsUrl;
         document.getElementById('btnWhatsApp').href   = 'https://wa.me/?text=' + waText;
         document.getElementById('btnCopiarCoords').onclick = function() {
-            navigator.clipboard.writeText(mapsUrl).then(() => {
-                this.innerHTML = '<i class="fa-solid fa-check me-1"></i>Copiado';
-                setTimeout(() => { this.innerHTML = '<i class="fa-regular fa-copy me-1"></i>Copiar enlace'; }, 2000);
+            navigator.clipboard.writeText(mapsUrl).then(function() {
+                var btn = document.getElementById('btnCopiarCoords');
+                btn.innerHTML = '<i class="fa-solid fa-check me-1"></i>Copiado';
+                setTimeout(function() { btn.innerHTML = '<i class="fa-regular fa-copy me-1"></i>Copiar enlace'; }, 2000);
             });
         };
     }
 
-    if (C.hasCoords) {
-        marker = L.marker([initLat, initLng], { draggable: true }).addTo(map);
-        marker.on('dragend', function(ev) {
-            const p = ev.target.getLatLng();
+    /* Actualiza todo al cambiar coords (desde click o drag) */
+    function applyCoords(lat, lng) {
+        document.getElementById('latitud').value  = lat.toFixed(8);
+        document.getElementById('longitud').value = lng.toFixed(8);
+        updateShareLinks(lat, lng);
+        updateLoteSection(lat, lng);
+        document.getElementById('coordsDisplay').classList.remove('d-none');
+    }
+
+    /* Actualiza todo al escribir manualmente (no toca los inputs) */
+    function applyCoordsFromInput(lat, lng) {
+        updateShareLinks(lat, lng);
+        updateLoteSection(lat, lng);
+        document.getElementById('coordsDisplay').classList.remove('d-none');
+    }
+
+    function attachDragEnd(m) {
+        m.on('dragend', function(ev) {
+            var p = ev.target.getLatLng();
             applyCoords(p.lat, p.lng);
         });
+    }
+
+    if (C.hasCoords) {
+        marker = L.marker([initLat, initLng], { draggable: true }).addTo(map);
+        attachDragEnd(marker);
         updateShareLinks(initLat, initLng);
+        updateLoteSection(initLat, initLng);
     }
 
     map.on('click', function (e) {
@@ -556,12 +691,45 @@ $extra_scripts = '<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/l
             marker.setLatLng(e.latlng);
         } else {
             marker = L.marker(e.latlng, { draggable: true }).addTo(map);
-            marker.on('dragend', function(ev) {
-                const p = ev.target.getLatLng();
-                applyCoords(p.lat, p.lng);
-            });
+            attachDragEnd(marker);
         }
         applyCoords(e.latlng.lat, e.latlng.lng);
+    });
+
+    /* Sincronización al escribir lat/lng manualmente */
+    function onCoordInput() {
+        var lat = parseFloat(document.getElementById('latitud').value);
+        var lng = parseFloat(document.getElementById('longitud').value);
+        if (isNaN(lat) || isNaN(lng)) return;
+        if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return;
+        if (marker) {
+            marker.setLatLng([lat, lng]);
+        } else {
+            marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+            attachDragEnd(marker);
+        }
+        map.panTo([lat, lng]);
+        applyCoordsFromInput(lat, lng);
+    }
+    document.getElementById('latitud').addEventListener('change', onCoordInput);
+    document.getElementById('longitud').addEventListener('change', onCoordInput);
+
+    /* Advertencia: si hay lote pendiente y se guarda fuera del parque, se pierde */
+    var _lotePendienteNumero = <?= json_encode($empresa['lote_declarado'] ?? '') ?>;
+    var _formConfirmado = false;
+    document.getElementById('formPerfil').addEventListener('submit', function(e) {
+        if (_formConfirmado) return;
+        if (C.loteEstado === 'pendiente' && document.getElementById('dentroPque').value === '0') {
+            e.preventDefault();
+            document.getElementById('lotePerdidoNumero').textContent = _lotePendienteNumero;
+            var modal = new bootstrap.Modal(document.getElementById('modalLotePerdido'));
+            modal.show();
+            document.getElementById('btnConfirmarGuardar').onclick = function() {
+                _formConfirmado = true;
+                modal.hide();
+                document.getElementById('formPerfil').submit();
+            };
+        }
     });
 
     /* ---- Gallery AJAX ---- */

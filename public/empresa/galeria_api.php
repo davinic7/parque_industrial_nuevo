@@ -24,12 +24,12 @@ $accion = $_POST['accion'] ?? $_GET['accion'] ?? '';
 
 if ($accion === 'listar') {
     try {
-        $stmt = $db->prepare("SELECT id, imagen FROM empresa_imagenes WHERE empresa_id = ? ORDER BY orden ASC, id ASC");
+        $stmt = $db->prepare("SELECT id, url FROM empresa_imagenes WHERE empresa_id = ? ORDER BY orden ASC, id ASC");
         $stmt->execute([$empresa_id]);
         $imgs = $stmt->fetchAll();
         $result = array_map(fn($img) => [
             'id'  => $img['id'],
-            'url' => uploads_resolve_url($img['imagen'], 'galeria_empresa'),
+            'url' => uploads_resolve_url($img['url'], 'galeria_empresa'),
         ], $imgs);
         echo json_encode(['ok' => true, 'imagenes' => $result]);
     } catch (Exception $e) {
@@ -51,7 +51,7 @@ if ($accion === 'listar') {
         $stmt = $db->prepare("SELECT COALESCE(MAX(orden), 0) + 1 FROM empresa_imagenes WHERE empresa_id = ?");
         $stmt->execute([$empresa_id]);
         $orden = (int)$stmt->fetchColumn();
-        $db->prepare("INSERT INTO empresa_imagenes (empresa_id, imagen, orden) VALUES (?, ?, ?)")
+        $db->prepare("INSERT INTO empresa_imagenes (empresa_id, url, orden) VALUES (?, ?, ?)")
            ->execute([$empresa_id, $upload['filename'], $orden]);
         echo json_encode([
             'ok'  => true,

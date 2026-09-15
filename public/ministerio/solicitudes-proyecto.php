@@ -102,6 +102,9 @@ require_once BASEPATH . '/includes/ministerio_layout_header.php';
 .sol-resumen { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 .border-l-nueva    { border-left: 4px solid #ffc107 !important; }
 .border-l-carpeta  { border-left: 4px solid #0d6efd !important; }
+.doc-check { display:inline-flex; align-items:center; gap:.25rem; padding:.2rem .5rem; border-radius:.25rem; font-size:.8rem; }
+.doc-check.si { background:#d1e7dd; color:#0a3622; }
+.doc-check.no { background:#f8d7da; color:#58151c; }
 </style>
 
 <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
@@ -154,7 +157,12 @@ require_once BASEPATH . '/includes/ministerio_layout_header.php';
         'eliminada'  => ['bg-secondary',         '',                 'Eliminada'],
         default      => ['bg-secondary',         '',                 ucfirst($estado)],
     };
-    $tiene_adjuntos = !empty($s['archivo_1']) || !empty($s['archivo_2']);
+    $tiene_adjuntos = !empty($s['archivo_1']) || !empty($s['archivo_2']) || !empty($s['archivo_3']) || !empty($s['archivo_4']) || !empty($s['archivo_5']);
+    $tipo_label = match($s['tipo_persona'] ?? '') {
+        'fisica'   => 'P. Física',
+        'juridica' => 'P. Jurídica',
+        default    => '',
+    };
 ?>
 <div class="card shadow-sm sol-card <?= $border_class ?>" id="sol-<?= $s['id'] ?>">
     <div class="card-body py-3">
@@ -162,18 +170,22 @@ require_once BASEPATH . '/includes/ministerio_layout_header.php';
             <div class="col">
                 <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
                     <span class="badge <?= $badge_class ?>" id="badge-<?= $s['id'] ?>"><?= $label ?></span>
+                    <?php if ($tipo_label): ?>
+                    <span class="badge bg-light text-dark border small"><?= $tipo_label ?></span>
+                    <?php endif; ?>
                     <?php if ($s['solicita_cita']): ?>
                     <span class="badge bg-light text-dark border small"><i class="bi bi-calendar-check me-1"></i>Solicita cita</span>
                     <?php endif; ?>
                     <?php if ($tiene_adjuntos): ?>
                     <span class="badge bg-light text-dark border small"><i class="bi bi-paperclip me-1"></i>Con adjuntos</span>
                     <?php endif; ?>
-                    <strong><?= e($s['nombre_empresa']) ?></strong>
+                    <strong><?= e($s['nombre_empresa'] ?: $s['contacto']) ?></strong>
                 </div>
                 <p class="mb-1 small text-muted">
                     <i class="bi bi-person me-1"></i><?= e($s['contacto']) ?>
                     &nbsp;·&nbsp;<a href="mailto:<?= e($s['email']) ?>" class="text-muted"><?= e($s['email']) ?></a>
                     <?= $s['telefono'] ? ' &nbsp;·&nbsp;<i class="bi bi-telephone me-1"></i>' . e($s['telefono']) : '' ?>
+                    <?= $s['cuit_cuil'] ? ' &nbsp;·&nbsp;CUIT: ' . e($s['cuit_cuil']) : '' ?>
                 </p>
                 <p class="mb-1 small text-secondary sol-resumen"><?= e($s['resumen_proyecto']) ?></p>
                 <small class="text-muted"><i class="bi bi-clock me-1"></i><?= format_datetime($s['created_at']) ?></small>
@@ -190,13 +202,30 @@ require_once BASEPATH . '/includes/ministerio_layout_header.php';
                     data-contacto="<?= e($s['contacto']) ?>"
                     data-email="<?= e($s['email']) ?>"
                     data-telefono="<?= e($s['telefono'] ?? '') ?>"
+                    data-tipo="<?= e($s['tipo_persona'] ?? '') ?>"
+                    data-dni="<?= e($s['dni_titulares'] ?? '') ?>"
+                    data-cuit="<?= e($s['cuit_cuil'] ?? '') ?>"
+                    data-rubro="<?= e($s['rubro'] ?? '') ?>"
+                    data-rubro-actividad="<?= e($s['rubro_actividad'] ?? '') ?>"
                     data-resumen="<?= htmlspecialchars($s['resumen_proyecto'], ENT_QUOTES) ?>"
                     data-cita="<?= $s['solicita_cita'] ? '1' : '0' ?>"
                     data-estado="<?= e($estado) ?>"
                     data-obs="<?= e($s['observaciones'] ?? '') ?>"
                     data-fecha="<?= e(format_datetime($s['created_at'])) ?>"
+                    data-contrato="<?= $s['tiene_contrato_constitutivo'] ?>"
+                    data-acta="<?= $s['tiene_acta_autoridades'] ?>"
+                    data-registro="<?= $s['tiene_inscripcion_registro'] ?>"
+                    data-arca="<?= $s['tiene_inscripcion_arca'] ?>"
+                    data-arcat="<?= $s['tiene_inscripcion_arcat'] ?>"
+                    data-otras="<?= e($s['otras_inscripciones'] ?? '') ?>"
+                    data-ambiental="<?= $s['tiene_estudio_ambiental'] ?>"
+                    data-croquis="<?= $s['tiene_croquis_obra'] ?>"
+                    data-cronograma="<?= $s['tiene_cronograma_obra'] ?>"
                     data-archivo1="<?= e($s['archivo_1'] ?? '') ?>"
-                    data-archivo2="<?= e($s['archivo_2'] ?? '') ?>">
+                    data-archivo2="<?= e($s['archivo_2'] ?? '') ?>"
+                    data-archivo3="<?= e($s['archivo_3'] ?? '') ?>"
+                    data-archivo4="<?= e($s['archivo_4'] ?? '') ?>"
+                    data-archivo5="<?= e($s['archivo_5'] ?? '') ?>">
                     <i class="bi bi-eye me-1"></i>Ver detalle
                 </button>
                 <?php if ($estado !== 'eliminada'): ?>
@@ -234,6 +263,8 @@ require_once BASEPATH . '/includes/ministerio_layout_header.php';
                 <input type="hidden" name="id" id="mId">
                 <input type="hidden" name="accion" value="actualizar">
                 <div class="modal-body">
+                    <!-- Datos del solicitante -->
+                    <p class="text-uppercase text-muted small fw-semibold mb-2"><i class="bi bi-person-vcard me-1"></i>Datos del solicitante</p>
                     <div class="row g-2 mb-3 small">
                         <div class="col-sm-4 d-flex align-items-center gap-2">
                             <i class="bi bi-person text-primary"></i><span id="mContacto"></span>
@@ -245,16 +276,43 @@ require_once BASEPATH . '/includes/ministerio_layout_header.php';
                             <i class="bi bi-telephone text-primary"></i><span id="mTel"></span>
                         </div>
                     </div>
+                    <div class="row g-2 mb-3 small">
+                        <div class="col-sm-3" id="mTipoWrap">
+                            <span class="text-muted">Tipo:</span> <strong id="mTipo"></strong>
+                        </div>
+                        <div class="col-sm-3" id="mDniWrap">
+                            <span class="text-muted">DNI:</span> <strong id="mDni"></strong>
+                        </div>
+                        <div class="col-sm-3" id="mCuitWrap">
+                            <span class="text-muted">CUIT/CUIL:</span> <strong id="mCuit"></strong>
+                        </div>
+                        <div class="col-sm-3" id="mRubroWrap">
+                            <span class="text-muted">Rubro:</span> <strong id="mRubro"></strong>
+                        </div>
+                    </div>
+                    <div id="mRubroActWrap" class="mb-3 small d-none">
+                        <span class="text-muted">Actividad:</span> <span id="mRubroAct"></span>
+                    </div>
+
                     <div id="mCitaBadge" class="mb-3 d-none">
                         <span class="badge bg-warning text-dark">
                             <i class="bi bi-calendar-check me-1"></i>Solicita cita presencial
                         </span>
                     </div>
+
+                    <!-- Documentación -->
+                    <p class="text-uppercase text-muted small fw-semibold mb-2"><i class="bi bi-folder-check me-1"></i>Documentación declarada</p>
+                    <div class="d-flex flex-wrap gap-2 mb-3" id="mDocChecks"></div>
+                    <div id="mOtrasWrap" class="mb-3 small d-none">
+                        <span class="text-muted">Otras inscripciones:</span> <span id="mOtras"></span>
+                    </div>
+
                     <!-- Adjuntos -->
                     <div id="mAdjuntos" class="mb-3 d-none">
-                        <p class="small fw-semibold text-uppercase text-muted mb-2">Archivos adjuntos</p>
+                        <p class="small fw-semibold text-uppercase text-muted mb-2"><i class="bi bi-paperclip me-1"></i>Archivos adjuntos</p>
                         <div class="d-flex gap-2 flex-wrap" id="mAdjuntosLinks"></div>
                     </div>
+
                     <!-- Resumen -->
                     <div class="card bg-light border-0 mb-3">
                         <div class="card-body py-3">
@@ -262,6 +320,7 @@ require_once BASEPATH . '/includes/ministerio_layout_header.php';
                             <p class="mb-0" id="mResumen" style="white-space:pre-wrap;"></p>
                         </div>
                     </div>
+
                     <!-- Estado + Obs -->
                     <div class="row g-3">
                         <div class="col-md-4">
@@ -343,12 +402,23 @@ $extra_scripts = <<<HTML
     const CSRF_NAME   = {$csrf_name_json};
     const CSRF_VAL    = {$csrf_val_json};
 
+    const DOC_LABELS = [
+        ['contrato',   'Contrato constitutivo'],
+        ['acta',       'Acta de autoridades'],
+        ['registro',   'Inscripción Reg. Público'],
+        ['arca',       'Inscripción ARCA'],
+        ['arcat',      'Inscripción ARCAT'],
+        ['ambiental',  'Estudio Impacto Ambiental'],
+        ['croquis',    'Croquis de obra'],
+        ['cronograma', 'Cronograma de obra'],
+    ];
+
     document.querySelectorAll('.btn-ver').forEach(btn => {
         btn.addEventListener('click', function () {
             const d = this.dataset;
 
             document.getElementById('mId').value             = d.id;
-            document.getElementById('mNombre').textContent   = d.nombre;
+            document.getElementById('mNombre').textContent   = d.nombre || d.contacto;
             document.getElementById('mFecha').textContent    = d.fecha;
             document.getElementById('mContacto').textContent = d.contacto;
 
@@ -364,20 +434,49 @@ $extra_scripts = <<<HTML
                 telWrap.classList.add('d-none');
             }
 
+            // Campos nuevos
+            const show = (id, val) => {
+                const el = document.getElementById(id);
+                if (val) { el.classList.remove('d-none'); } else { el.classList.add('d-none'); }
+            };
+            const tipoMap = { fisica: 'Persona física', juridica: 'Persona jurídica' };
+            document.getElementById('mTipo').textContent = tipoMap[d.tipo] || '—';
+            show('mTipoWrap', d.tipo);
+            document.getElementById('mDni').textContent = d.dni || '—';
+            show('mDniWrap', d.dni);
+            document.getElementById('mCuit').textContent = d.cuit || '—';
+            show('mCuitWrap', d.cuit);
+            const rubroText = [d.rubro, d.rubroActividad].filter(Boolean).join(' — ');
+            document.getElementById('mRubro').textContent = d.rubro || '—';
+            show('mRubroWrap', d.rubro);
+            document.getElementById('mRubroAct').textContent = d.rubroActividad || '';
+            show('mRubroActWrap', d.rubroActividad);
+
+            // Documentación checks
+            const checksDiv = document.getElementById('mDocChecks');
+            checksDiv.innerHTML = '';
+            DOC_LABELS.forEach(([key, label]) => {
+                const tiene = d[key] === '1';
+                checksDiv.innerHTML += '<span class="doc-check ' + (tiene ? 'si' : 'no') + '">'
+                    + '<i class="bi bi-' + (tiene ? 'check-circle-fill' : 'x-circle') + '"></i> '
+                    + label + '</span>';
+            });
+            document.getElementById('mOtras').textContent = d.otras || '';
+            show('mOtrasWrap', d.otras);
+
             document.getElementById('mCitaBadge').classList.toggle('d-none', d.cita !== '1');
             document.getElementById('mResumen').textContent = d.resumen;
             document.getElementById('mEstado').value        = d.estado;
             document.getElementById('mObs').value           = d.obs;
 
-            // Adjuntos
+            // Adjuntos (hasta 5)
             const adjDiv   = document.getElementById('mAdjuntos');
             const adjLinks = document.getElementById('mAdjuntosLinks');
             adjLinks.innerHTML = '';
-            const archivos = [d.archivo1, d.archivo2].filter(Boolean);
+            const archivos = [d.archivo1, d.archivo2, d.archivo3, d.archivo4, d.archivo5].filter(Boolean);
             if (archivos.length > 0) {
                 archivos.forEach((a, i) => {
                     const url  = UPLOADS_URL + a;
-                    const nombre = a.split('/').pop();
                     adjLinks.innerHTML += '<a href="' + url + '" target="_blank" class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-earmark-arrow-down me-1"></i>Archivo ' + (i+1) + '</a>';
                 });
                 adjDiv.classList.remove('d-none');
@@ -399,7 +498,7 @@ $extra_scripts = <<<HTML
                 bootstrap.Modal.getInstance(document.getElementById('modalDetalle'))?.hide();
                 document.getElementById('msgSolId').value          = d.id;
                 document.getElementById('msgDestino').textContent  = d.email;
-                document.getElementById('msgAsunto').value         = 'Re: Solicitud de proyecto - ' + d.nombre;
+                document.getElementById('msgAsunto').value         = 'Re: Solicitud de proyecto - ' + (d.nombre || d.contacto);
                 document.getElementById('msgContenido').value      = '';
                 new bootstrap.Modal(document.getElementById('modalMensaje')).show();
             };

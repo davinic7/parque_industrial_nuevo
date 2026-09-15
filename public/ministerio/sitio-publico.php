@@ -9,7 +9,7 @@ if (!$auth->requireRole(['ministerio', 'admin'], PUBLIC_URL . '/login.php')) exi
 $page_title = 'Gestión del sitio público';
 $db = getDB();
 
-$tabs_validos = ['inicio', 'el_parque', 'contacto'];
+$tabs_validos = ['inicio', 'el_parque', 'contacto', 'legal'];
 $tab = in_array($_GET['tab'] ?? '', $tabs_validos) ? $_GET['tab'] : 'inicio';
 
 // ── POST handler ─────────────────────────────────────────────────────────────
@@ -60,6 +60,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verify_csrf($_POST[CSRF_TOKEN_NAME]
                 'redes_facebook'     => ['text', trim($_POST['redes_facebook'] ?? '')],
                 'redes_instagram'    => ['text', trim($_POST['redes_instagram'] ?? '')],
                 'redes_twitter'      => ['text', trim($_POST['redes_twitter'] ?? '')],
+            ];
+            break;
+
+        case 'legal':
+            $kvs = [
+                'terminos_legales'             => ['textarea', trim($_POST['terminos_legales'] ?? '')],
+                'terminos_legales_formularios'  => ['textarea', trim($_POST['terminos_legales_formularios'] ?? '')],
+                'terminos_legales_exportaciones' => ['textarea', trim($_POST['terminos_legales_exportaciones'] ?? '')],
             ];
             break;
     }
@@ -124,6 +132,11 @@ $redes_facebook  = get_config('redes_facebook',     '');
 $redes_instagram = get_config('redes_instagram',    '');
 $redes_twitter   = get_config('redes_twitter',      '');
 
+// Tab Legal
+$terminos_legales              = get_config('terminos_legales', '');
+$terminos_legales_formularios  = get_config('terminos_legales_formularios', '');
+$terminos_legales_exportaciones = get_config('terminos_legales_exportaciones', '');
+
 $ministerio_nav = 'sitio_publico';
 $extra_head = '<link rel="stylesheet" href="https://cdn.quilljs.com/1.3.7/quill.snow.css">';
 require_once BASEPATH . '/includes/ministerio_layout_header.php';
@@ -175,6 +188,11 @@ require_once BASEPATH . '/includes/ministerio_layout_header.php';
     <li class="nav-item">
         <a class="nav-link px-3 py-2<?= $tab === 'contacto'  ? ' active' : '' ?>" href="?tab=contacto">
             <i class="bi bi-person-lines-fill me-1"></i>Contacto y Redes
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link px-3 py-2<?= $tab === 'legal' ? ' active' : '' ?>" href="?tab=legal">
+            <i class="bi bi-file-earmark-text me-1"></i>Términos Legales
         </a>
     </li>
 </ul>
@@ -516,6 +534,52 @@ require_once BASEPATH . '/includes/ministerio_layout_header.php';
     <div class="d-flex gap-2">
         <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Guardar cambios</button>
         <a href="<?= PUBLIC_URL ?>/" target="_blank" class="btn btn-outline-secondary">Ver sitio</a>
+    </div>
+</form>
+
+<?php /* ══════════════════ TAB: TÉRMINOS LEGALES ══════════════════ */ elseif ($tab === 'legal'): ?>
+
+<form method="POST" id="form-legal">
+    <?= csrf_field() ?>
+    <input type="hidden" name="tab_section" value="legal">
+
+    <div class="card mb-3">
+        <div class="card-header bg-white">
+            <span class="fw-semibold"><i class="bi bi-shield-exclamation me-2 text-warning"></i>Términos legales generales</span>
+        </div>
+        <div class="card-body">
+            <div class="cms-section-label">Texto legal general del ministerio. Se puede usar como base para formularios y documentos.</div>
+            <textarea name="terminos_legales" class="form-control" rows="6"
+                      placeholder="Ej: Los datos proporcionados son de carácter confidencial y serán utilizados exclusivamente para fines estadísticos y de gestión del Parque Industrial..."><?= e($terminos_legales) ?></textarea>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header bg-white">
+            <span class="fw-semibold"><i class="bi bi-ui-checks me-2 text-primary"></i>Términos para formularios</span>
+        </div>
+        <div class="card-body">
+            <div class="cms-section-label">Se muestra al pie de los formularios enviados a las empresas (formularios dinámicos, declaraciones juradas)</div>
+            <textarea name="terminos_legales_formularios" class="form-control" rows="5"
+                      placeholder="Ej: Al completar este formulario, la empresa declara bajo juramento que los datos consignados son verídicos y se compromete a notificar cualquier modificación..."><?= e($terminos_legales_formularios) ?></textarea>
+            <div class="form-text">Si se deja vacío, no se mostrará texto legal en los formularios.</div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-white">
+            <span class="fw-semibold"><i class="bi bi-file-earmark-pdf me-2 text-danger"></i>Términos para documentos exportados</span>
+        </div>
+        <div class="card-body">
+            <div class="cms-section-label">Se incluye al pie de los reportes y documentos exportados (PDF, impresiones)</div>
+            <textarea name="terminos_legales_exportaciones" class="form-control" rows="5"
+                      placeholder="Ej: Este documento es de uso interno del Ministerio de Producción e Industria de la Provincia de Catamarca. La información contenida es confidencial..."><?= e($terminos_legales_exportaciones) ?></textarea>
+            <div class="form-text">Si se deja vacío, no se incluirá texto legal en los documentos exportados.</div>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Guardar términos legales</button>
     </div>
 </form>
 

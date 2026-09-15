@@ -107,6 +107,9 @@ $mn = static function (string $key) use ($ministerio_nav): string {
             <a href="comunicados.php" class="<?= $mn('comunicados') ?>"><i class="fa-solid fa-paper-plane"></i> Comunicados</a>
             <?php endif; ?>
 
+            <div class="empresa-sidebar-section">Catastro</div>
+            <a href="lotes.php" class="<?= $mn('lotes') ?>"><i class="fa-solid fa-map"></i> Lotes del parque</a>
+
             <div class="empresa-sidebar-section">Sitio público</div>
             <a href="sitio-publico.php" class="<?= $mn('sitio_publico') ?>"><i class="fa-solid fa-globe"></i> Gestión del sitio</a>
             <a href="publicaciones.php" class="<?= $mn('publicaciones') ?>"><i class="fa-solid fa-bullhorn"></i> Publicaciones</a>

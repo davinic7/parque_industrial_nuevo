@@ -8,7 +8,7 @@ $page_title = 'Mapa del Parque';
 
 try {
     $db = getDB();
-    $stmt = $db->query("SELECT id, nombre, rubro, ubicacion, direccion, telefono, contacto_nombre, latitud, longitud, logo, sitio_web, facebook, instagram, linkedin FROM empresas WHERE estado = 'activa' ORDER BY nombre");
+    $stmt = $db->query("SELECT id, nombre, rubro, ubicacion, direccion, telefono, contacto_nombre, latitud, longitud, logo, sitio_web, facebook, instagram, linkedin, lote_declarado, lote_solicitud_estado FROM empresas WHERE estado = 'activa' ORDER BY nombre");
     $empresas = $stmt->fetchAll();
     // Resolver URL del logo para cada empresa
     foreach ($empresas as &$emp) {
@@ -172,7 +172,7 @@ require_once BASEPATH . '/includes/header.php';
                 <div class="empresa-list-info">
                     <div class="nombre"><?= e($emp['nombre']) ?></div>
                     <div class="rubro"><?= e($emp['rubro'] ?? 'Sin rubro') ?></div>
-                    <div class="ubicacion"><i class="bi bi-geo-alt"></i> <?= e($emp['ubicacion'] ?? '-') ?><?= !$tiene_coords ? ' · <em>sin pin</em>' : '' ?></div>
+                    <div class="ubicacion"><i class="bi bi-geo-alt"></i> <?= e($emp['direccion'] ?: ($emp['ubicacion'] ?? '-')) ?><?= !$tiene_coords ? ' · <em>sin pin</em>' : '' ?></div>
                 </div>
             </div>
             <?php endforeach; ?>
@@ -215,10 +215,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Centro: Parque Industrial El Pantanillo
-    const map = L.map('mapFull').setView([-28.5337, -65.8010], 15);
+    const map = L.map('mapFull').setView([-28.5337, -65.8010], 13);
 
-    // Capa satelital (aplica constrainMap internamente: minZoom 14, maxBounds parque)
+    // Capa satelital — luego liberamos zoom para ver la provincia completa
     ParqueLeaflet.addSatelliteLayer(map);
+    map.setMinZoom(7);
+    map.setMaxBounds(null);
+    map.options.maxBoundsViscosity = 0;
     // Overlay OSM semitransparente para ver nombres de calles sobre el satélite
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         opacity: 0.35,
@@ -263,7 +266,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             </div>
                         </div>
                         <div style="font-size:.82rem;color:#374151;display:flex;flex-direction:column;gap:4px;">
-                            ${emp.ubicacion ? `<div><i class="bi bi-geo-alt" style="color:#6b7280;margin-right:4px;"></i>${emp.ubicacion}</div>` : ''}
+                            ${(emp.direccion || emp.ubicacion) ? `<div><i class="bi bi-geo-alt" style="color:#6b7280;margin-right:4px;"></i>${emp.direccion || emp.ubicacion}</div>` : ''}
                             ${emp.telefono  ? `<div><i class="bi bi-telephone" style="color:#6b7280;margin-right:4px;"></i>${emp.telefono}</div>` : ''}
                         </div>
                         ${redesHtml}
@@ -277,6 +280,61 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Polígono del Parque Industrial El Pantanillo (OSM way/37355935)
     ParqueLeaflet.addParquePolygon(map);
+
+    // ── Lotes: polígonos con color por estado ────────────────────
+    const LOTE_COLORES = { disponible: '#198754', ocupado: '#dc3545', reservado: '#fd7e14' };
+    const LOTE_LABELS  = { disponible: 'Disponible', ocupado: 'Ocupado', reservado: 'Reservado' };
+
+    fetch('<?= rtrim(PUBLIC_URL, '/') ?>/api/lotes/listar_publico.php', { credentials: 'same-origin' })
+        .then(function(r) { return r.ok ? r.json() : null; })
+        .then(function(data) {
+            if (!data || !Array.isArray(data.data) || !data.data.length) return;
+            var conGeom = 0;
+
+            data.data.forEach(function(lote) {
+                if (!lote.geometria_terreno || !lote.geometria_terreno.coordinates) return;
+                var coords  = lote.geometria_terreno.coordinates[0];
+                var latLngs = coords.slice(0, -1).map(function(c) { return [c[1], c[0]]; });
+                var color   = LOTE_COLORES[lote.estado] || '#6c757d';
+                var label   = LOTE_LABELS[lote.estado]  || lote.estado;
+
+                var popup =
+                    '<div style="min-width:170px;font-family:inherit;">' +
+                    '<div style="font-weight:700;font-size:.9rem;color:#1a5276;">Lote ' + lote.numero_lote + '</div>' +
+                    (lote.sector ? '<div style="font-size:.78rem;color:#64748b;">Sector: ' + lote.sector + '</div>' : '') +
+                    (lote.superficie_m2 ? '<div style="font-size:.78rem;">Sup: ' + Math.round(lote.superficie_m2).toLocaleString('es-AR') + ' m²</div>' : '') +
+                    '<span style="display:inline-block;margin:4px 0;padding:2px 8px;border-radius:4px;font-size:.75rem;font-weight:600;color:#fff;background:' + color + ';">' + label + '</span>' +
+                    (lote.propietario_nombre ? '<div style="font-size:.78rem;margin-top:2px;"><i class="bi bi-building me-1"></i>' + lote.propietario_nombre + '</div>' : '') +
+                    '</div>';
+
+                L.polygon(latLngs, {
+                    color: color, weight: 2, fillColor: color, fillOpacity: 0.22
+                }).addTo(map).bindPopup(popup, { maxWidth: 230 });
+
+                conGeom++;
+            });
+
+            // Sección de lotes en la leyenda
+            if (conGeom > 0) {
+                var legendEl = document.getElementById('legendSection');
+                if (legendEl) {
+                    var sec = document.createElement('div');
+                    sec.style.cssText = 'margin-top:8px;padding-top:8px;border-top:1px solid #e5e7eb;';
+                    sec.innerHTML =
+                        '<h6 style="font-size:.68rem;color:#6b7280;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;">' +
+                        '<i class="bi bi-map me-1"></i>Lotes</h6>' +
+                        '<div class="legend-items">' +
+                        Object.keys(LOTE_COLORES).map(function(e) {
+                            return '<div class="legend-item">' +
+                                '<div style="width:12px;height:12px;border-radius:2px;background:' + LOTE_COLORES[e] + ';flex-shrink:0;"></div>' +
+                                LOTE_LABELS[e] + '</div>';
+                        }).join('') +
+                        '</div>';
+                    legendEl.appendChild(sec);
+                }
+            }
+        })
+        .catch(function() { /* silencioso: lotes son opcionales en el mapa */ });
 
     // Colorear dots de la lista y construir leyenda
     const rubrosSeen = {};

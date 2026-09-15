@@ -64,17 +64,18 @@ if ($token) {
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && verify_csrf($_POST[CSRF_TOKEN_NAME] ?? '')) {
         $email = trim($_POST['email'] ?? '');
 
-        if (empty($email) || !is_valid_email($email)) {
+        if (!verify_recaptcha()) {
+            $error = 'Debe completar la verificación de seguridad (reCAPTCHA).';
+        } elseif (empty($email) || !is_valid_email($email)) {
             $error = 'Ingrese un email válido.';
         } else {
             $result = $auth->requestPasswordReset($email);
             // Siempre mostrar éxito por seguridad (no revelar si el email existe)
             $mensaje = 'Si el email está registrado, recibirá instrucciones para restablecer su contraseña. Por favor contacte al administrador si no recibe el correo.';
+            $dev_reset_link = '';
 
             if ($result['success'] && isset($result['token']) && defined('APP_ENV') && APP_ENV !== 'production') {
-                // En desarrollo mostramos el link directamente
-                $reset_link = PUBLIC_URL . '/recuperar.php?token=' . $result['token'];
-                $mensaje .= '<br><br><strong>Modo desarrollo - Link de recuperacion:</strong><br><a href="' . e($reset_link) . '">' . e($reset_link) . '</a>';
+                $dev_reset_link = PUBLIC_URL . '/recuperar.php?token=' . $result['token'];
             }
         }
     }
@@ -95,7 +96,13 @@ include __DIR__ . '/../includes/header.php';
                         </h3>
 
                         <?php if ($mensaje): ?>
-                        <div class="alert alert-success"><?= $mensaje ?></div>
+                        <div class="alert alert-success"><?= e($mensaje) ?></div>
+                        <?php if (!empty($dev_reset_link)): ?>
+                        <div class="alert alert-warning">
+                            <strong>Modo desarrollo — Link de recuperación:</strong><br>
+                            <a href="<?= e($dev_reset_link) ?>"><?= e($dev_reset_link) ?></a>
+                        </div>
+                        <?php endif; ?>
                         <?php endif; ?>
                         <?php if ($error): ?>
                         <div class="alert alert-danger"><?= e($error) ?></div>
@@ -124,6 +131,7 @@ include __DIR__ . '/../includes/header.php';
                                 <label class="form-label">Email</label>
                                 <input type="email" name="email" class="form-control" required placeholder="su@email.com" autofocus>
                             </div>
+                            <?= recaptcha_field() ?>
                             <button type="submit" class="btn btn-primary w-100">Enviar instrucciones</button>
                         </form>
                         <?php endif; ?>

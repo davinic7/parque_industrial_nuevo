@@ -603,26 +603,14 @@ function get_rubros_con_conteo() {
     try {
         $db = getDB();
         $stmt = $db->query("
-            SELECT 
-                rubro as nombre,
-                COUNT(*) as total_empresas,
-                CASE rubro
-                    WHEN 'TEXTIL' THEN '#3498db'
-                    WHEN 'CONSTRUCCION' THEN '#e74c3c'
-                    WHEN 'CONSTRUCCIÓN' THEN '#e74c3c'
-                    WHEN 'METALURGICA' THEN '#95a5a6'
-                    WHEN 'ALIMENTOS' THEN '#27ae60'
-                    WHEN 'TRANSPORTE' THEN '#f39c12'
-                    WHEN 'RECICLADO' THEN '#2ecc71'
-                    WHEN 'HORMIGON' THEN '#7f8c8d'
-                    WHEN 'ELECTRODOMESTICOS' THEN '#9b59b6'
-                    WHEN 'CALZADOS' THEN '#e67e22'
-                    WHEN 'MEDICAMENTOS' THEN '#1abc9c'
-                    ELSE '#bdc3c7'
-                END as color
-            FROM empresas 
-            WHERE rubro IS NOT NULL AND rubro != ''
-            GROUP BY rubro
+            SELECT
+                e.rubro AS nombre,
+                COUNT(*) AS total_empresas,
+                COALESCE(r.color, '#3498db') AS color
+            FROM empresas e
+            LEFT JOIN rubros r ON r.nombre = e.rubro AND r.activo = 1
+            WHERE e.rubro IS NOT NULL AND e.rubro != '' AND e.estado = 'activa'
+            GROUP BY e.rubro, r.color
             ORDER BY total_empresas DESC
             LIMIT 10
         ");
@@ -976,21 +964,73 @@ function paginate($total, $per_page, $current_page, $url_pattern) {
  */
 function render_pagination($p) {
     if ($p['total_pages'] <= 1) return '';
-    
+
     $html = '<nav><ul class="pagination justify-content-center">';
-    $html .= $p['has_prev'] 
+    $html .= $p['has_prev']
         ? '<li class="page-item"><a class="page-link" href="'.e($p['prev_url']).'">«</a></li>'
         : '<li class="page-item disabled"><span class="page-link">«</span></li>';
-    
+
     foreach ($p['pages'] as $page) {
         $html .= $page == $p['current_page']
             ? '<li class="page-item active"><span class="page-link">'.$page.'</span></li>'
             : '<li class="page-item"><a class="page-link" href="'.str_replace('{page}', $page, $p['url_pattern']).'">'.$page.'</a></li>';
     }
-    
+
     $html .= $p['has_next']
         ? '<li class="page-item"><a class="page-link" href="'.e($p['next_url']).'">»</a></li>'
         : '<li class="page-item disabled"><span class="page-link">»</span></li>';
-    
+
     return $html . '</ul></nav>';
+}
+
+/**
+ * reCAPTCHA v2: indica si está configurado
+ */
+function recaptcha_enabled(): bool {
+    return defined('RECAPTCHA_SITE_KEY') && RECAPTCHA_SITE_KEY !== ''
+        && defined('RECAPTCHA_SECRET_KEY') && RECAPTCHA_SECRET_KEY !== '';
+}
+
+/**
+ * reCAPTCHA v2: renderiza el widget + script
+ */
+function recaptcha_field(): string {
+    if (!recaptcha_enabled()) return '';
+    return '<div class="g-recaptcha mb-3" data-sitekey="' . e(RECAPTCHA_SITE_KEY) . '"></div>';
+}
+
+/**
+ * reCAPTCHA v2: tag <script> para cargar la API (incluir una vez en la página)
+ */
+function recaptcha_script(): string {
+    if (!recaptcha_enabled()) return '';
+    return '<script src="https://www.google.com/recaptcha/api.js" async defer></script>';
+}
+
+/**
+ * reCAPTCHA v2: verificar respuesta server-side
+ * Devuelve true si el captcha es válido o si reCAPTCHA no está configurado (graceful degradation)
+ */
+function verify_recaptcha(): bool {
+    if (!recaptcha_enabled()) return true;
+
+    $response = $_POST['g-recaptcha-response'] ?? '';
+    if (empty($response)) return false;
+
+    $ch = curl_init('https://www.google.com/recaptcha/api/siteverify');
+    curl_setopt_array($ch, [
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => http_build_query([
+            'secret'   => RECAPTCHA_SECRET_KEY,
+            'response' => $response,
+            'remoteip' => $_SERVER['REMOTE_ADDR'] ?? '',
+        ]),
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT        => 10,
+    ]);
+    $result = curl_exec($ch);
+    curl_close($ch);
+
+    $data = json_decode((string) $result, true);
+    return !empty($data['success']);
 }

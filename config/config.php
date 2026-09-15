@@ -77,8 +77,8 @@ ini_set('session.cookie_secure', env('SESSION_COOKIE_SECURE', APP_ENV === 'produ
 // En Render, como el DocumentRoot apunta a /public, SITE_URL ya es la raíz.
 define('SITE_URL', rtrim(env('SITE_URL', 'http://localhost/parque_industrial'), '/'));
 define('PUBLIC_URL', APP_ENV === 'production' ? SITE_URL : SITE_URL . '/public');
-define('EMPRESA_URL', SITE_URL . '/empresa');
-define('MINISTERIO_URL', SITE_URL . '/ministerio');
+define('EMPRESA_URL', PUBLIC_URL . '/empresa');
+define('MINISTERIO_URL', PUBLIC_URL . '/ministerio');
 
 // Rutas de archivos
 define('UPLOADS_PATH', BASEPATH . '/public/uploads');
@@ -140,3 +140,7 @@ if (empty($_SESSION[CSRF_TOKEN_NAME])) {
 define('CLOUDINARY_CLOUD_NAME', env('CLOUDINARY_CLOUD_NAME', ''));
 define('CLOUDINARY_API_KEY', env('CLOUDINARY_API_KEY', ''));
 define('CLOUDINARY_API_SECRET', env('CLOUDINARY_API_SECRET', ''));
+
+// Google reCAPTCHA v2
+define('RECAPTCHA_SITE_KEY', env('RECAPTCHA_SITE_KEY', ''));
+define('RECAPTCHA_SECRET_KEY', env('RECAPTCHA_SECRET_KEY', ''));
