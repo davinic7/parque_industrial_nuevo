@@ -82,8 +82,8 @@ $page_title = 'Activar cuenta';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= e($page_title) ?> - Parque Industrial</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="<?= PUBLIC_URL ?>/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
+    <link href="<?= PUBLIC_URL ?>/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
     <style>
         body { min-height: 100vh; display: flex; background: linear-gradient(135deg, #1a5276, #0e3a52); }
         .activation-box { width: 100%; max-width: 450px; margin: auto; padding: 20px; }

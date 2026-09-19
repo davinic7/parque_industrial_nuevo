@@ -171,7 +171,7 @@ try {
 }
 
 $empresa_nav = '';
-$extra_head = '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css">';
+$extra_head = '<link rel="stylesheet" href="' . PUBLIC_URL . '/vendor/leaflet/leaflet.css">';
 require_once BASEPATH . '/includes/empresa_layout_header.php';
 ?>
 
@@ -566,7 +566,7 @@ $js_cfg  = json_encode([
     'loteEstado' => $empresa['lote_solicitud_estado'] ?? 'sin_solicitud',
     'loteDeclarado' => $empresa['lote_declarado'] ?? '',
 ]);
-$extra_scripts = '<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>'
+$extra_scripts = '<script src="' . PUBLIC_URL . '/vendor/leaflet/leaflet.js"></script>'
     . '<script src="' . $pu . '/js/parque-leaflet.js"></script>'
     . '<script>const __CFG=' . $js_cfg . ';</script>'
     . <<<'JSEOF'

@@ -51,7 +51,7 @@ $stmt->execute([$user_id]);
 $no_leidas = $stmt->fetchColumn();
 
 $empresa_nav = '';
-$extra_head = '<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">';
+$extra_head = '<link href="' . PUBLIC_URL . '/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">';
 require_once BASEPATH . '/includes/empresa_layout_header.php';
 ?>
         <?php if ($no_leidas > 0): ?>

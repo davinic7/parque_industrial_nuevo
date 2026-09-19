@@ -179,12 +179,11 @@ if ($current_page !== 'index') {
 
     <link rel="icon" type="image/x-icon" href="<?= PUBLIC_URL ?>/favicon.ico">
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Montserrat:wght@600;700&display=swap" rel="stylesheet">
+    <link href="<?= PUBLIC_URL ?>/vendor/fonts/fonts.css" rel="stylesheet">
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link href="<?= PUBLIC_URL ?>/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
+    <link href="<?= PUBLIC_URL ?>/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="<?= PUBLIC_URL ?>/vendor/leaflet/leaflet.css">
 
     <link rel="stylesheet" href="<?= PUBLIC_URL ?>/css/styles.css">
 

@@ -7,7 +7,7 @@ $extra_scripts = $extra_scripts ?? '';
         </main>
     </div>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="<?= PUBLIC_URL ?>/vendor/bootstrap/bootstrap.bundle.min.js"></script>
 <script>
 (function() {
     var t = document.getElementById('ministerioMenuToggle');

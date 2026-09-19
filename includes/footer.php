@@ -51,14 +51,14 @@
     </footer>
 
     <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="<?= PUBLIC_URL ?>/vendor/bootstrap/bootstrap.bundle.min.js"></script>
     
     <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="<?= PUBLIC_URL ?>/vendor/leaflet/leaflet.js"></script>
     <script src="<?= PUBLIC_URL ?>/js/parque-leaflet.js"></script>
     
     <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="<?= PUBLIC_URL ?>/vendor/chartjs/chart.umd.js"></script>
     <script src="<?= PUBLIC_URL ?>/js/chart-percent-labels.js"></script>
     
     <!-- Custom JS -->

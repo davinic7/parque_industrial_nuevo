@@ -55,8 +55,8 @@ $lotes_js = array_map(function($l) {
 $csrf_token_value = $_SESSION[CSRF_TOKEN_NAME] ?? '';
 
 $extra_head = '
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
+<link rel="stylesheet" href="' . PUBLIC_URL . '/vendor/leaflet/leaflet.css"/>
+<link rel="stylesheet" href="' . PUBLIC_URL . '/vendor/leaflet-draw/leaflet.draw.css"/>
 <style>
 /* Mapa full-width arriba */
 #mapaGeneral   { width: 100%; height: clamp(380px, calc(100vh - 370px), 600px); }
@@ -359,8 +359,8 @@ require_once BASEPATH . '/includes/ministerio_layout_header.php';
 </div>
 
 <?php ob_start(); ?>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+<script src="<?= PUBLIC_URL ?>/vendor/leaflet/leaflet.js"></script>
+<script src="<?= PUBLIC_URL ?>/vendor/leaflet-draw/leaflet.draw.js"></script>
 <script src="<?= PUBLIC_URL ?>/js/parque-leaflet.js"></script>
 <script>
 (function () {

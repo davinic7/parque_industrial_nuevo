@@ -130,7 +130,7 @@ $perfil_completo = round(($completos / count($campos_perfil)) * 100);
 
 $ministerio_nav = 'empresas';
 $extra_head = ($empresa['latitud'] && $empresa['longitud'])
-    ? '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css">'
+    ? '<link rel="stylesheet" href="' . PUBLIC_URL . '/vendor/leaflet/leaflet.css">'
     : '';
 require_once BASEPATH . '/includes/ministerio_layout_header.php';
 ?>
@@ -395,7 +395,7 @@ if ($empresa['latitud'] && $empresa['longitud']) {
     $lo = (float) $empresa['longitud'];
     $popupJs = json_encode($empresa['nombre'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_UNESCAPED_UNICODE);
     $extra_scripts = <<<HTML
-    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
+    <script src="{$pu}/vendor/leaflet/leaflet.js"></script>
     <script src="{$pu}/js/parque-leaflet.js"></script>
     <script>
         const map = L.map('mapDetalle', { zoomControl: false }).setView([{$la}, {$lo}], 15);

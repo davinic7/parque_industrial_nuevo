@@ -206,8 +206,8 @@ if (!$formulario) {
 }
 
 $empresa_nav = 'formularios';
-$extra_head = '<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css">';
+$extra_head = '<link href="' . PUBLIC_URL . '/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+<link rel="stylesheet" href="' . PUBLIC_URL . '/vendor/leaflet/leaflet.css">';
 require_once BASEPATH . '/includes/empresa_layout_header.php';
 ?>
         <div class="mb-3">
@@ -548,7 +548,7 @@ require_once BASEPATH . '/includes/empresa_layout_header.php';
 ob_start();
 $puJs = htmlspecialchars(PUBLIC_URL, ENT_QUOTES, 'UTF-8');
 ?>
-    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
+    <script src="<?= PUBLIC_URL ?>/vendor/leaflet/leaflet.js"></script>
     <script src="<?= $puJs ?>/js/parque-leaflet.js"></script>
     <script>
     // ── Contador de caracteres ─────────────────────────────────

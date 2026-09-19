@@ -83,7 +83,7 @@ if (!is_array($visibles_actual)) {
 }
 
 $ministerio_nav = 'empresa-metricas';
-$extra_head = '<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">';
+$extra_head = '<link href="' . PUBLIC_URL . '/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">';
 require_once BASEPATH . '/includes/ministerio_layout_header.php';
 ?>
 

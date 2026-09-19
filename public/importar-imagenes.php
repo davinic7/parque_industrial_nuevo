@@ -141,7 +141,7 @@ $total_errores = count($errores);
 <head>
     <meta charset="UTF-8">
     <title>Importar Imágenes</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="<?= PUBLIC_URL ?>/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-light p-4">
 <div class="container" style="max-width:780px">

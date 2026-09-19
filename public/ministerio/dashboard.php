@@ -68,7 +68,7 @@ try {
 }
 
 $ministerio_nav = 'dashboard';
-$extra_head = '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css">';
+$extra_head = '<link rel="stylesheet" href="' . PUBLIC_URL . '/vendor/leaflet/leaflet.css">';
 require_once BASEPATH . '/includes/ministerio_layout_header.php';
 ?>
         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -187,9 +187,9 @@ $dataJson = json_encode($rubros_values);
 $lat = (float) MAP_DEFAULT_LAT;
 $lng = (float) MAP_DEFAULT_LNG;
 $extra_scripts = <<<HTML
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{$pu}/vendor/chartjs/chart.umd.js"></script>
     <script src="{$pu}/js/chart-percent-labels.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
+    <script src="{$pu}/vendor/leaflet/leaflet.js"></script>
     <script src="{$pu}/js/parque-leaflet.js"></script>
     <script>
         new Chart(document.getElementById('chartRubros'), {

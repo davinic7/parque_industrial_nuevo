@@ -13,7 +13,7 @@ Desarrollo: DaviNic Developer — Jorge David Nicolau López — davinic7@gmail.
 | Lenguaje | PHP 8.2, sin framework ni Composer |
 | Base de datos | MySQL 5.7+ / 8.x o MariaDB 10.4+ (utf8mb4, InnoDB) |
 | Servidor web | Apache 2.4 (con `mod_rewrite`) o Nginx + PHP-FPM |
-| Frontend | Bootstrap 5, Leaflet 1.9.4, JavaScript sin compilar (no requiere Node ni npm) |
+| Frontend | Bootstrap 5, Leaflet 1.9.4, JavaScript sin compilar (no requiere Node ni npm); librerías incluidas en `public/vendor/` |
 | Raíz web | La carpeta **`public/`** |
 | Estructura | 28 tablas + 2 vistas |
 
@@ -72,7 +72,7 @@ El servidor necesita salida HTTPS hacia estos servicios **sólo si se usan** (ve
 | `www.google.com:443` | Validación de reCAPTCHA |
 | `api.cloudinary.com:443` | Almacenamiento externo de imágenes (opcional) |
 
-Los navegadores de los usuarios cargan además recursos de `cdn.jsdelivr.net`, `unpkg.com`, `fonts.googleapis.com` y los mapas de OpenStreetMap/Esri. Si la red del Ministerio filtra esos dominios, el sitio se verá sin estilos o sin mapa.
+Bootstrap, los iconos, las tipografías, Leaflet, Chart.js y el resto de librerías se sirven desde el propio sitio (`public/vendor/`), por lo que **no dependen de ningún CDN**. Lo único que los navegadores de los usuarios piden a servicios externos son las teselas de los mapas (OpenStreetMap y Esri/ArcGIS) y, si está activado, reCAPTCHA (`www.google.com`, `www.gstatic.com`). Si la red del Ministerio filtra esos dominios, el sitio se ve completo pero sin el fondo del mapa.
 
 ---
 

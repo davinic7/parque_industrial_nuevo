@@ -133,7 +133,7 @@ try {
 }
 
 $ministerio_nav = 'graficos';
-$extra_head = '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css">';
+$extra_head = '<link rel="stylesheet" href="' . PUBLIC_URL . '/vendor/leaflet/leaflet.css">';
 require_once BASEPATH . '/includes/ministerio_layout_header.php';
 ?>
         <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
@@ -232,9 +232,9 @@ $pu = htmlspecialchars(PUBLIC_URL, ENT_QUOTES, 'UTF-8');
 $mapLat = (float) MAP_DEFAULT_LAT;
 $mapLng = (float) MAP_DEFAULT_LNG;
 $extra_scripts = '
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="' . $pu . '/vendor/chartjs/chart.umd.js"></script>
     <script src="' . $pu . '/js/chart-percent-labels.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
+    <script src="' . $pu . '/vendor/leaflet/leaflet.js"></script>
     <script src="' . $pu . '/js/parque-leaflet.js"></script>
     <script>
         const rubrosLabels = ' . json_encode($rubros_labels, JSON_UNESCAPED_UNICODE) . ';

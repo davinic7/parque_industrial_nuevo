@@ -883,7 +883,7 @@ document.addEventListener('DOMContentLoaded', function () {
     initSortable();
 });
 </script>
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
+<script src="<?= PUBLIC_URL ?>/vendor/sortablejs/Sortable.min.js"></script>
 <script>
 // Re-init sortable after CDN loads (si cargó después del IIFE)
 (function () {

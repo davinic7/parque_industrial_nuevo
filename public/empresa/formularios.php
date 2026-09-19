@@ -340,7 +340,7 @@ $chk = function ($on) use ($ro) {
 
 $empresa_nav = 'formularios';
 $empresa_body_extra = $modo_consulta ? 'dj-mod-consulta' : '';
-$extra_head = '<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+$extra_head = '<link href="' . PUBLIC_URL . '/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
 <style>
         .dj-page { max-width: 920px; }
         .dj-consulta-banner {
@@ -742,8 +742,7 @@ require_once BASEPATH . '/includes/empresa_layout_header.php';
         </div>
 
 <?php
-$extra_scripts = <<<'EOT'
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+$extra_scripts = '<script src="' . PUBLIC_URL . '/vendor/sweetalert2/sweetalert2.all.min.js"></script>' . <<<'EOT'
     <script>
     (function() {
         const form = document.getElementById('djForm');

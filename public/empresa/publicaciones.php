@@ -230,7 +230,7 @@ if ($pub_form !== null) {
 $mostrar_form = isset($_GET['nueva']) || $editando || $pub_form !== null;
 
 $empresa_nav = 'publicaciones';
-$extra_head = '<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">';
+$extra_head = '<link href="' . PUBLIC_URL . '/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">';
 require_once BASEPATH . '/includes/empresa_layout_header.php';
 ?>
         <div class="d-flex justify-content-between align-items-center mb-4">

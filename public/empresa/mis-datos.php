@@ -66,7 +66,7 @@ function bloque_visible(array $bloques_visibles, string $key): bool {
 
 $empresa_nav = 'mis-datos';
 $extra_head  = '
-<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+<link href="' . PUBLIC_URL . '/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
 <style>
 .md-chart-card { background:#fff; border:1px solid rgba(0,0,0,.07); border-radius:16px; padding:20px; box-shadow:0 2px 12px rgba(0,0,0,.04); }
 .md-chart-card h6 { font-size:.82rem; text-transform:uppercase; letter-spacing:.04em; color:#6c757d; margin-bottom:12px; font-weight:600; }
@@ -251,7 +251,7 @@ if (!empty($consumos_activos)):
 <?php
 ob_start();
 ?>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="<?= PUBLIC_URL ?>/vendor/chartjs/chart.umd.js"></script>
 <script>
 (function() {
     var labels     = <?= $labels_js ?>;

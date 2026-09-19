@@ -1,0 +1,11 @@
+/* Tipografías alojadas localmente (subconjunto latin). Origen: paquetes @fontsource de Montserrat, Roboto e Inter (licencia OFL). */
+@font-face{font-family:'Montserrat';font-style:normal;font-display:swap;font-weight:500;src:url('montserrat-latin-500-normal.woff2') format('woff2')}
+@font-face{font-family:'Montserrat';font-style:normal;font-display:swap;font-weight:600;src:url('montserrat-latin-600-normal.woff2') format('woff2')}
+@font-face{font-family:'Montserrat';font-style:normal;font-display:swap;font-weight:700;src:url('montserrat-latin-700-normal.woff2') format('woff2')}
+@font-face{font-family:'Roboto';font-style:normal;font-display:swap;font-weight:400;src:url('roboto-latin-400-normal.woff2') format('woff2')}
+@font-face{font-family:'Roboto';font-style:normal;font-display:swap;font-weight:500;src:url('roboto-latin-500-normal.woff2') format('woff2')}
+/* Roboto 600 no existe como archivo estático: se usa el 700 */
+@font-face{font-family:'Roboto';font-style:normal;font-display:swap;font-weight:600 700;src:url('roboto-latin-700-normal.woff2') format('woff2')}
+@font-face{font-family:'Inter';font-style:normal;font-display:swap;font-weight:400;src:url('inter-latin-400-normal.woff2') format('woff2')}
+@font-face{font-family:'Inter';font-style:normal;font-display:swap;font-weight:500;src:url('inter-latin-500-normal.woff2') format('woff2')}
+@font-face{font-family:'Inter';font-style:normal;font-display:swap;font-weight:600;src:url('inter-latin-600-normal.woff2') format('woff2')}

@@ -138,7 +138,7 @@ $terminos_legales_formularios  = get_config('terminos_legales_formularios', '');
 $terminos_legales_exportaciones = get_config('terminos_legales_exportaciones', '');
 
 $ministerio_nav = 'sitio_publico';
-$extra_head = '<link rel="stylesheet" href="https://cdn.quilljs.com/1.3.7/quill.snow.css">';
+$extra_head = '<link rel="stylesheet" href="' . PUBLIC_URL . '/vendor/quill/quill.snow.css">';
 require_once BASEPATH . '/includes/ministerio_layout_header.php';
 ?>
 
@@ -585,7 +585,7 @@ require_once BASEPATH . '/includes/ministerio_layout_header.php';
 
 <?php endif; ?>
 
-<script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+<script src="<?= PUBLIC_URL ?>/vendor/quill/quill.min.js"></script>
 <script>
 (function () {
     'use strict';
