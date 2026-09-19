@@ -78,13 +78,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $file_type = is_uploaded_file($file_tmp) ? (new finfo(FILEINFO_MIME_TYPE))->file($file_tmp) : '';
                             $ext       = safe_extension_for_mime((string) $file_type);
                             if (in_array($file_type, $allowed, true) && $ext !== null) {
-                                $new_name = 'adj_' . uniqid() . '.' . $ext;
-                                $dest     = UPLOADS_PATH . '/formularios/' . $new_name;
-                                if (!is_dir(UPLOADS_PATH . '/formularios')) {
-                                    mkdir(UPLOADS_PATH . '/formularios', 0775, true);
-                                }
-                                if (move_uploaded_file($file_tmp, $dest)) {
-                                    $adj_data['archivo'] = $new_name;
+                                $archivo_subido = [
+                                    'name'     => $_FILES['pregunta_adj_file']['name'][$i],
+                                    'tmp_name' => $file_tmp,
+                                    'error'    => $_FILES['pregunta_adj_file']['error'][$i],
+                                    'size'     => $_FILES['pregunta_adj_file']['size'][$i],
+                                ];
+                                // Cloudinary si esta configurado; si no, disco local. Se guarda la URL o el nombre de archivo.
+                                $guardado = store_upload($archivo_subido, 'formularios', $allowed, $file_type);
+                                if ($guardado['success']) {
+                                    $adj_data['archivo'] = $guardado['filename'];
                                 }
                             }
                         }

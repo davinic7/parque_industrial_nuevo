@@ -82,10 +82,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $error = "El archivo $n no es un tipo permitido (PDF, JPG, PNG, DOC, DOCX).";
                         break;
                     }
-                    $nombre  = uniqid("doc{$n}_") . '_' . time() . '.' . $ext;
-                    $destino = $doc_dir . '/' . $nombre;
-                    if (move_uploaded_file($file['tmp_name'], $destino)) {
-                        $archivos[$n - 1] = 'documento-proyectos/' . $nombre;
+                    $guardado = store_upload($file, 'documento-proyectos', $tipos_permitidos, $mime);
+                    if ($guardado['success']) {
+                        // URL absoluta (Cloudinary) o ruta relativa a uploads/ (local)
+                        $archivos[$n - 1] = preg_match('#^https?://#i', $guardado['filename'])
+                            ? $guardado['filename']
+                            : 'documento-proyectos/' . $guardado['filename'];
                     } else {
                         $error = "No se pudo guardar el archivo $n. Intente nuevamente.";
                         break;

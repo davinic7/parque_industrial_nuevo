@@ -93,7 +93,7 @@ if (!$formulario) {
                         $valor = $valores_actuales[$p['id']] ?? null;
                         if (!empty($_FILES[$campo_name]['name'])) {
                             $allowed = ['image/jpeg','image/png','image/webp','application/pdf'];
-                            $res = upload_file($_FILES[$campo_name], 'formularios', $allowed);
+                            $res = store_upload($_FILES[$campo_name], 'formularios', $allowed);
                             if ($res['success']) {
                                 $valor = $res['filename'];
                             } else {
@@ -352,7 +352,7 @@ require_once BASEPATH . '/includes/empresa_layout_header.php';
                                 <?php
                                 $adj_data    = !empty($p['opciones']) ? (json_decode($p['opciones'], true) ?: []) : [];
                                 $adj_archivo = $adj_data['archivo'] ?? null;
-                                $adj_url     = $adj_archivo ? UPLOADS_URL . '/formularios/' . $adj_archivo : null;
+                                $adj_url     = $adj_archivo ? uploads_resolve_url($adj_archivo, 'formularios') : null;
                                 $adj_ext     = $adj_archivo ? strtolower(pathinfo($adj_archivo, PATHINFO_EXTENSION)) : '';
                                 $adj_img     = in_array($adj_ext, ['jpg','jpeg','png','webp','gif'], true);
                                 $val_str     = is_array($valor) ? '' : (string)$valor;
@@ -393,7 +393,7 @@ require_once BASEPATH . '/includes/empresa_layout_header.php';
                                 <?php if (!empty($valor)): ?>
                                 <div class="form-text mt-1">
                                     Archivo actual:
-                                    <a href="<?= UPLOADS_URL ?>/formularios/<?= e($valor) ?>" target="_blank"><?= e($valor) ?></a>
+                                    <a href="<?= e(uploads_resolve_url((string) $valor, 'formularios')) ?>" target="_blank"><?= e(basename((string) $valor)) ?></a>
                                     — Subí uno nuevo para reemplazarlo.
                                 </div>
                                 <?php endif; ?>

@@ -83,20 +83,18 @@ try {
             coms_json_error(413, "Los adjuntos exceden el limite total de {$mb} MB por mensaje.");
         }
 
-        // Persistir: usa Cloudinary si esta configurado, sino /uploads/mensajes/
-        $upload_result = upload_image_storage($file, 'mensajes', COMS_ALLOWED_MIMES);
-        if (!$upload_result['success']) {
-            // Fallback: si no es imagen, usar upload_file generico
-            $upload_result = upload_file($file, 'mensajes', COMS_ALLOWED_MIMES, $mime_real);
-        }
+        // Persistir: Cloudinary si esta configurado (imagen o raw segun el tipo), sino /uploads/mensajes/
+        $upload_result = store_upload($file, 'mensajes', COMS_ALLOWED_MIMES, $mime_real);
         if (!$upload_result['success']) {
             coms_json_error(500, "Error al guardar '{$file['name']}': " . $upload_result['error']);
         }
 
-        $url = $upload_result['filename'] ?? ($upload_result['url'] ?? '');
+        // En la base se guarda la URL de Cloudinary o el nombre del archivo local (independiente del dominio).
+        $guardado = $upload_result['filename'];
+        $url = uploads_resolve_url($guardado, 'mensajes');
 
         $adj_id = coms_agregar_adjunto($mensaje_id, [
-            'url'    => $url,
+            'url'    => $guardado,
             'nombre' => basename((string)$file['name']),
             'tipo'   => $mime_real,
             'tamano' => (int)$file['size'],

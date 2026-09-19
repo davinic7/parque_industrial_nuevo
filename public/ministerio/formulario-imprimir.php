@@ -295,7 +295,7 @@ $total_resp = count($respuestas);
                     <div class="c-label"><?= e($p['etiqueta']) ?></div>
                     <div class="c-value <?= $vacio ? 'empty' : '' ?>">
                         <?php if ($p['tipo'] === 'archivo' && !empty($valor)): ?>
-                            <a href="<?= UPLOADS_URL ?>/formularios/<?= e($valor) ?>" target="_blank">[Ver archivo adjunto]</a>
+                            <a href="<?= e(uploads_resolve_url((string) $valor, 'formularios')) ?>" target="_blank">[Ver archivo adjunto]</a>
                         <?php elseif ($p['tipo'] === 'archivo_adjunto'): ?>
                             <?= $vacio ? '—' : e((string)$valor) ?>
                         <?php elseif ($p['tipo'] === 'direccion' && !empty($valor)): ?>

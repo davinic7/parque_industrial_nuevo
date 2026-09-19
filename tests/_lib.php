@@ -88,6 +88,18 @@ class Cliente {
         }
         return html_entity_decode($m[1]);
     }
+    /** POST multipart/form-data. Los valores pueden ser CURLFile (o 'archivos[0]' => CURLFile). */
+    public function multipart(string $ruta, array $campos): array {
+        $ch = curl_init($this->base . $ruta);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true, CURLOPT_COOKIEJAR => $this->jar, CURLOPT_COOKIEFILE => $this->jar,
+            CURLOPT_TIMEOUT => 60, CURLOPT_POST => true, CURLOPT_POSTFIELDS => $campos,
+        ]);
+        $body = (string) curl_exec($ch);
+        $r = ['code' => (int) curl_getinfo($ch, CURLINFO_HTTP_CODE), 'body' => $body, 'json' => json_decode($body, true)];
+        curl_close($ch);
+        return $r;
+    }
     /** POST con cuerpo JSON (como hacen las APIs de lotes). $csrf va en la cabecera X-CSRF-Token. */
     public function postJson(string $ruta, array $datos, ?string $csrf = null): array {
         $ch = curl_init($this->base . $ruta);

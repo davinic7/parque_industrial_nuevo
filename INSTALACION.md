@@ -285,7 +285,9 @@ RECAPTCHA_SECRET_KEY=
 
 ### 5.3 Cloudinary (opcional)
 
-Sin estas variables, las imágenes y adjuntos se guardan en `public/uploads/` del propio servidor, que es lo recomendado en un servidor propio con backups. Sólo hace falta si se quiere guardar las imágenes fuera del servidor.
+Sin estas variables, las imágenes y adjuntos se guardan en `public/uploads/` del propio servidor, que es lo recomendado en un servidor propio con backups. **Con hosting de disco efímero (p. ej. Render) son obligatorias**: los archivos de `public/uploads/` se pierden en cada despliegue.
+
+Con las tres variables definidas, se guardan en Cloudinary (carpeta `parque_industrial/<tipo>`): las imágenes como `image` y los demás documentos (PDF, Word, Excel, ZIP…) como `raw`. Esto cubre logos, galería, publicaciones, adjuntos del Centro de Comunicaciones, archivos de formularios y documentos de "Presentar proyecto". Si Cloudinary falla en una subida, ese archivo se guarda en disco local como respaldo (y se pierde en el próximo despliegue, así que conviene revisar el log de errores: `cloudinary_upload`).
 
 ```ini
 CLOUDINARY_CLOUD_NAME=

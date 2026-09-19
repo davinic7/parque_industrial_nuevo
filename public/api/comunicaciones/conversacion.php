@@ -53,7 +53,7 @@ try {
             'adjuntos'       => array_map(function ($a) {
                 return [
                     'id'     => (int)$a['id'],
-                    'url'    => $a['archivo_url'],
+                    'url'    => uploads_resolve_url($a['archivo_url'], 'mensajes'),
                     'nombre' => $a['archivo_nombre'],
                     'tipo'   => $a['archivo_tipo'],
                     'tamano' => (int)$a['archivo_tamano'],

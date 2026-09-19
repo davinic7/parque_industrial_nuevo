@@ -150,6 +150,7 @@ if (empty($_SESSION[CSRF_TOKEN_NAME])) {
 define('CLOUDINARY_CLOUD_NAME', env('CLOUDINARY_CLOUD_NAME', ''));
 define('CLOUDINARY_API_KEY', env('CLOUDINARY_API_KEY', ''));
 define('CLOUDINARY_API_SECRET', env('CLOUDINARY_API_SECRET', ''));
+define('CLOUDINARY_API_BASE', env('CLOUDINARY_API_BASE', '')); // solo para pruebas; vacío = api.cloudinary.com
 
 // Google reCAPTCHA v2
 define('RECAPTCHA_SITE_KEY', env('RECAPTCHA_SITE_KEY', ''));

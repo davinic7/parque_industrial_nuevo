@@ -88,11 +88,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verify_csrf($_POST[CSRF_TOKEN_NAME]
                         $file_type = is_uploaded_file($file_tmp) ? (new finfo(FILEINFO_MIME_TYPE))->file($file_tmp) : '';
                         $ext       = safe_extension_for_mime((string) $file_type);
                         if (in_array($file_type, $allowed, true) && $ext !== null) {
-                            $new_name = 'adj_' . uniqid() . '.' . $ext;
-                            $dest     = UPLOADS_PATH . '/formularios/' . $new_name;
-                            if (!is_dir(UPLOADS_PATH . '/formularios')) mkdir(UPLOADS_PATH . '/formularios', 0775, true);
-                            if (move_uploaded_file($file_tmp, $dest)) {
-                                $adj_data['archivo'] = $new_name;
+                            $archivo_subido = [
+                                'name'     => $_FILES['pregunta_adj_file']['name'][$i],
+                                'tmp_name' => $file_tmp,
+                                'error'    => $_FILES['pregunta_adj_file']['error'][$i],
+                                'size'     => $_FILES['pregunta_adj_file']['size'][$i],
+                            ];
+                            // Cloudinary si esta configurado; si no, disco local. Se guarda la URL o el nombre de archivo.
+                            $guardado = store_upload($archivo_subido, 'formularios', $allowed, $file_type);
+                            if ($guardado['success']) {
+                                $adj_data['archivo'] = $guardado['filename'];
                             }
                         }
                     }
@@ -215,6 +220,8 @@ ob_start();
 (function() {
     var TIPOS       = <?= $tipos_json ?>;
     var UPLOADS_URL = <?= $uploads_url_js ?>;
+    // El adjunto guardado es un nombre de archivo local o una URL absoluta (Cloudinary)
+    function urlAdjunto(a) { return /^https?:\/\//i.test(a) ? a : UPLOADS_URL + a; }
     var existentes  = <?= $preguntas_js_encoded ?>;
 
     var TIPO_INFO = {
@@ -273,9 +280,9 @@ ob_start();
                 var prev  = document.createElement('div');
                 prev.className = 'mt-2';
                 if (isImg) {
-                    prev.innerHTML = '<img src="' + UPLOADS_URL + datos.adj_archivo + '" class="img-thumbnail" style="max-height:120px"><div class="form-text">Archivo actual — subí uno nuevo para reemplazarlo</div>';
+                    prev.innerHTML = '<img src="' + urlAdjunto(datos.adj_archivo) + '" class="img-thumbnail" style="max-height:120px"><div class="form-text">Archivo actual — subí uno nuevo para reemplazarlo</div>';
                 } else {
-                    prev.innerHTML = '<a href="' + UPLOADS_URL + datos.adj_archivo + '" target="_blank" class="btn btn-sm btn-outline-secondary">Ver archivo actual</a><div class="form-text">Subí uno nuevo para reemplazarlo</div>';
+                    prev.innerHTML = '<a href="' + urlAdjunto(datos.adj_archivo) + '" target="_blank" class="btn btn-sm btn-outline-secondary">Ver archivo actual</a><div class="form-text">Subí uno nuevo para reemplazarlo</div>';
                 }
                 adjCont.appendChild(prev);
             }

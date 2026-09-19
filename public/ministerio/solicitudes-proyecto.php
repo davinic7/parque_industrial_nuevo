@@ -495,7 +495,7 @@ $extra_scripts = <<<HTML
             const archivos = [d.archivo1, d.archivo2, d.archivo3, d.archivo4, d.archivo5].filter(Boolean);
             if (archivos.length > 0) {
                 archivos.forEach((a, i) => {
-                    const url  = UPLOADS_URL + a;
+                    const url  = /^https?:\/\//i.test(a) ? a : UPLOADS_URL + a;
                     adjLinks.innerHTML += '<a href="' + url + '" target="_blank" class="btn btn-outline-secondary btn-sm"><i class="bi bi-file-earmark-arrow-down me-1"></i>Archivo ' + (i+1) + '</a>';
                 });
                 adjDiv.classList.remove('d-none');

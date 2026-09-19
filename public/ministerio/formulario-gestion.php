@@ -458,8 +458,8 @@ require_once BASEPATH . '/includes/ministerio_layout_header.php';
                         <div class="border rounded p-2">
                             <div class="small text-muted mb-1"><?= e($p['etiqueta']) ?></div>
                             <?php if ($p['tipo'] === 'archivo' && !empty($valor)): ?>
-                                <a href="<?= UPLOADS_URL ?>/formularios/<?= e($valor) ?>" target="_blank" class="btn btn-sm btn-outline-primary">
-                                    <i class="bi bi-paperclip me-1"></i><?= e($valor) ?>
+                                <a href="<?= e(uploads_resolve_url((string) $valor, 'formularios')) ?>" target="_blank" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-paperclip me-1"></i><?= e(basename((string) $valor)) ?>
                                 </a>
                             <?php elseif (is_array($valor)): ?>
                                 <strong><?= e(implode(', ', $valor)) ?: '-' ?></strong>
