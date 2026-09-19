@@ -7,124 +7,17 @@
  *
  * Variable opcional: TEST_BASE_URL (por defecto http://localhost:8080).
  *
- * Crea DOS empresas temporales (prefijo "zz_aislamiento_") con sus usuarios, inicia sesión como
+ * Crea DOS empresas temporales (prefijo "zz_test_") con sus usuarios, inicia sesión como
  * cada una y comprueba que la empresa B no pueda leer ni modificar datos de la empresa A.
  * Al terminar borra todo lo que creó. Solo usar contra una base de desarrollo.
  *
  * Sale con código 1 si algo falla.
  */
 
-require_once dirname(__DIR__) . '/config/config.php';
+require_once __DIR__ . '/_lib.php';
 
-$BASE = rtrim(getenv('TEST_BASE_URL') ?: 'http://localhost:8080', '/');
-$PASS = 'Aislamiento-' . bin2hex(random_bytes(4));
-$db = getDB();
-
-$pasan = 0;
-$fallan = [];
-
-function prueba(string $nombre, callable $fn): void {
-    global $pasan, $fallan;
-    try {
-        $fn();
-        $pasan++;
-        echo "  OK   $nombre\n";
-    } catch (Throwable $e) {
-        $fallan[] = [$nombre, $e->getMessage()];
-        echo "  FAIL $nombre\n       " . $e->getMessage() . "\n";
-    }
-}
-
-function verdadero($cond, string $msg): void {
-    if (!$cond) {
-        throw new RuntimeException($msg);
-    }
-}
-
-function igual($esperado, $real, string $msg = ''): void {
-    if ($esperado !== $real) {
-        throw new RuntimeException(
-            ($msg !== '' ? "$msg: " : '') . 'esperado ' . var_export($esperado, true) . ', obtenido ' . var_export($real, true)
-        );
-    }
-}
-
-/** Cliente HTTP con su propio jar de cookies (una "sesión de navegador"). */
-class Cliente {
-    public string $jar;
-    public function __construct(public string $base) {
-        $this->jar = tempnam(sys_get_temp_dir(), 'jar');
-    }
-    public function __destruct() {
-        @unlink($this->jar);
-    }
-    /** @return array{code:int, body:string, url:string} */
-    public function pedir(string $metodo, string $ruta, array $datos = [], bool $seguir = false): array {
-        $ch = curl_init($this->base . $ruta);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_COOKIEJAR      => $this->jar,
-            CURLOPT_COOKIEFILE     => $this->jar,
-            CURLOPT_FOLLOWLOCATION => $seguir,
-            CURLOPT_TIMEOUT        => 20,
-        ]);
-        if ($metodo === 'POST') {
-            curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($datos));
-        }
-        $body = (string) curl_exec($ch);
-        $r = ['code' => (int) curl_getinfo($ch, CURLINFO_HTTP_CODE), 'body' => $body, 'url' => (string) curl_getinfo($ch, CURLINFO_EFFECTIVE_URL)];
-        curl_close($ch);
-        return $r;
-    }
-    public function get(string $ruta, bool $seguir = false): array {
-        return $this->pedir('GET', $ruta, [], $seguir);
-    }
-    public function post(string $ruta, array $datos): array {
-        return $this->pedir('POST', $ruta, $datos);
-    }
-    public function json(string $metodo, string $ruta, array $datos = []): array {
-        $r = $this->pedir($metodo, $ruta, $datos);
-        $r['json'] = json_decode($r['body'], true);
-        return $r;
-    }
-    /** Token CSRF de una página (campo oculto). */
-    public function csrf(string $ruta): string {
-        $html = $this->get($ruta, true)['body'];
-        if (!preg_match('/name="' . preg_quote(CSRF_TOKEN_NAME, '/') . '"\s+value="([^"]+)"/', $html, $m)
-            && !preg_match('/value="([^"]+)"\s+name="' . preg_quote(CSRF_TOKEN_NAME, '/') . '"/', $html, $m)) {
-            throw new RuntimeException("No se encontró el token CSRF en $ruta");
-        }
-        return html_entity_decode($m[1]);
-    }
-    public function login(string $email, string $pass): void {
-        $token = $this->csrf('/login.php');
-        $this->post('/login.php', [CSRF_TOKEN_NAME => $token, 'email' => $email, 'password' => $pass]);
-        $r = $this->get('/empresa/dashboard.php');
-        if ($r['code'] !== 200 || strpos($r['url'], 'login.php') !== false) {
-            throw new RuntimeException("No se pudo iniciar sesión como $email (¿reCAPTCHA activo o servidor caído?)");
-        }
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Datos de prueba
-// ─────────────────────────────────────────────────────────────────────────────
 $ids = ['usuarios' => [], 'empresas' => []];
 $convs = [];
-
-function crear_empresa(PDO $db, string $tag, string $pass, array &$ids): array {
-    $email = "zz_aislamiento_{$tag}_" . bin2hex(random_bytes(3)) . '@test.local';
-    $db->prepare("INSERT INTO usuarios (email, password, rol, activo, email_verificado) VALUES (?, ?, 'empresa', 1, 1)")
-       ->execute([$email, password_hash($pass, PASSWORD_DEFAULT)]);
-    $uid = (int) $db->lastInsertId();
-    $db->prepare("INSERT INTO empresas (usuario_id, nombre, estado) VALUES (?, ?, 'activa')")
-       ->execute([$uid, "zz_aislamiento_$tag"]);
-    $eid = (int) $db->lastInsertId();
-    $ids['usuarios'][] = $uid;
-    $ids['empresas'][] = $eid;
-    return ['uid' => $uid, 'eid' => $eid, 'email' => $email];
-}
 
 function limpiar(PDO $db, array $ids, array $convs): void {
     try {
@@ -152,7 +45,7 @@ function limpiar(PDO $db, array $ids, array $convs): void {
             $db->prepare('DELETE FROM usuarios WHERE id = ?')->execute([$u]);
         }
     } catch (Throwable $e) {
-        fwrite(STDERR, 'AVISO: limpieza incompleta (' . $e->getMessage() . "). Buscar filas con prefijo zz_aislamiento_.\n");
+        fwrite(STDERR, 'AVISO: limpieza incompleta (' . $e->getMessage() . "). Buscar filas con prefijo zz_test_.\n");
     }
 }
 
@@ -160,18 +53,10 @@ register_shutdown_function(function () use ($db, &$ids, &$convs) {
     limpiar($db, $ids, $convs);
 });
 
-try {
-    $r = (new Cliente($BASE))->get('/login.php');
-    if ($r['code'] !== 200) {
-        throw new RuntimeException('');
-    }
-} catch (Throwable $e) {
-    fwrite(STDERR, "No hay servidor en $BASE. Inícielo con: php -S localhost:8080 -t public\n");
-    exit(2);
-}
+exigir_servidor($BASE);
 
-$A = crear_empresa($db, 'A', $PASS, $ids);
-$B = crear_empresa($db, 'B', $PASS, $ids);
+$A = crear_usuario($db, 'A', $PASS, $ids);
+$B = crear_usuario($db, 'B', $PASS, $ids);
 
 // Conversación 1-a-1 de A con un mensaje del ministerio
 $db->prepare("INSERT INTO conversaciones (titulo, empresa_id, iniciada_por, categoria, estado, ultimo_mensaje_at) VALUES ('zz_aislamiento privada A', ?, 'ministerio', 'consulta', 'abierta', NOW())")
@@ -329,7 +214,7 @@ prueba('el perfil de B ignora empresa_id/usuario_id inyectados y no toca a A', f
     $s = $db->prepare('SELECT nombre, usuario_id FROM empresas WHERE id = ?');
     $s->execute([$A['eid']]);
     $a = $s->fetch();
-    igual('zz_aislamiento_A', $a['nombre'], 'B cambió el nombre de la empresa A');
+    igual('zz_test_A', $a['nombre'], 'B cambió el nombre de la empresa A');
     igual($A['uid'], (int) $a['usuario_id'], 'B cambió el usuario dueño de A');
     $s->execute([$B['eid']]);
     igual($B['uid'], (int) $s->fetch()['usuario_id'], 'B perdió su propio usuario');
@@ -396,7 +281,4 @@ prueba('las APIs de lotes que escriben rechazan a una empresa', function () use 
     }
 });
 
-echo "\n";
-$total = $pasan + count($fallan);
-echo "Resultado: $pasan de $total pruebas OK\n\n";
-exit($fallan ? 1 : 0);
+resumen();
