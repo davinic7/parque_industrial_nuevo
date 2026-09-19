@@ -289,7 +289,7 @@ function resolve_upload_mime_to_allowed(array $file, array $allowed): ?string {
     }
     // SVG (logos ministerio): finfo suele dar xml/octet-stream
     if (in_array('image/svg+xml', $allowed, true)) {
-        $ext = strtolower(pathinfo($file['name'] ?? '', PATHINFO_EXTENSION));
+        $ext = strtolower(pathinfo($file['name'] ?? '', PATHINFO_EXTENSION)); // safe-ext-ok: solo decide si inspeccionar el contenido, no arma ningún nombre
         if ($ext === 'svg') {
             $head = @file_get_contents($tmp, false, null, 0, 500);
             if (is_string($head) && preg_match('/<\s*svg\b/i', $head)) {

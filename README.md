@@ -21,6 +21,11 @@ Aplicación PHP (sitio público, panel empresa y panel ministerio).
 
    Abrir `http://localhost:8080`. `SITE_URL` en `.env` debe ser la URL que apunta a `public/` (ej. `http://localhost:8080`); si cambiás el puerto, ajustalo.
 
+## Tests
+
+- `npm run test:seguridad`: pruebas de regresión de seguridad (PHP, sin navegador ni base de datos, corre en menos de 1 s). Cubre la subida de archivos, el escapado de HTML y la configuración endurecida. Conviene correrlo antes de cada despliegue.
+- `npm test`: suite completa con navegador (Playwright). Requiere el servidor en marcha (`php -S localhost:8080 -t public`) y las cuentas demo; hay que instalar antes el navegador con `npx playwright install chromium`.
+
 ## Cloudinary
 
 Los banners del inicio usan Cloudinary. Definí `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY` y `CLOUDINARY_API_SECRET` en `.env`.
