@@ -636,13 +636,6 @@ async function suiteMinisterio(page) {
     await shot(page, '52_ministerio_comunicaciones');
   });
 
-  await check('Ministerio / mensajes-entrada: carga sin error', async () => {
-    await go(page, '/ministerio/mensajes-entrada.php');
-    const body = await page.textContent('body').catch(() => '');
-    if (body.includes('Fatal error')) throw new Error('Fatal PHP error');
-    await sel(page, 'h1, h2, .card, .alert, main');
-  });
-
   await check('Ministerio / notificaciones: carga sin error', async () => {
     await go(page, '/ministerio/notificaciones.php');
     await sel(page, 'h1, h2, .card, form, .alert');

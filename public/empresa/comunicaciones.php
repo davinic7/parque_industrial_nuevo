@@ -2,17 +2,16 @@
 /**
  * Centro de Comunicaciones - Panel Empresa (Fase 2)
  *
- * Reemplaza a mensajes.php + notificaciones.php cuando FEATURE_CENTRO_COMS=1.
+ * Bandeja unica de mensajes y notificaciones de la empresa.
  */
 require_once __DIR__ . '/../../config/config.php';
 require_once BASEPATH . '/includes/comunicaciones.php';
 
 if (!$auth->requireRole(['empresa'], PUBLIC_URL . '/login.php')) exit;
 
-// Si el feature flag esta apagado o la migracion no se aplico, redirigir al
-// sistema viejo para no dejar al usuario sin bandeja.
-if (!FEATURE_CENTRO_COMS || !coms_schema_disponible()) {
-    redirect('mensajes.php');
+if (!coms_schema_disponible()) {
+    http_response_code(503);
+    exit('El Centro de Comunicaciones no esta disponible: falta aplicar el esquema de base de datos.');
 }
 
 $page_title = 'Comunicaciones';

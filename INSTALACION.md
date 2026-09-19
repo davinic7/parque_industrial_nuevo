@@ -15,7 +15,7 @@ Desarrollo: DaviNic Developer — Jorge David Nicolau López — davinic7@gmail.
 | Servidor web | Apache 2.4 (con `mod_rewrite`) o Nginx + PHP-FPM |
 | Frontend | Bootstrap 5, Leaflet 1.9.4, JavaScript sin compilar (no requiere Node ni npm) |
 | Raíz web | La carpeta **`public/`** |
-| Estructura | 29 tablas + 2 vistas |
+| Estructura | 28 tablas + 2 vistas |
 
 ---
 
@@ -158,7 +158,6 @@ DB_CHARSET=utf8mb4
 DB_SSL_CA=
 
 CRON_SECRET=una_clave_larga_y_aleatoria
-FEATURE_CENTRO_COMS=1
 ```
 
 Importante:

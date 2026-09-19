@@ -22,16 +22,10 @@ if (!defined('BASEPATH')) {
 // Los valores se pueden override via .env si se desea.
 // =====================================================
 
-// Feature flag: activa el centro nuevo. Por defecto OFF hasta que la
-// migracion 016 este aplicada y se haya validado en produccion.
+// El Centro de Comunicaciones es el unico sistema de mensajeria (la tabla vieja
+// `mensajes` fue retirada). La constante se conserva por compatibilidad.
 if (!defined('FEATURE_CENTRO_COMS')) {
-    $__coms_flag = getenv('FEATURE_CENTRO_COMS');
-    define(
-        'FEATURE_CENTRO_COMS',
-        $__coms_flag !== false &&
-        in_array(strtolower((string)$__coms_flag), ['1', 'true', 'yes', 'on'], true)
-    );
-    unset($__coms_flag);
+    define('FEATURE_CENTRO_COMS', true);
 }
 
 // Tope de tamano TOTAL por mensaje (suma de todos los adjuntos).

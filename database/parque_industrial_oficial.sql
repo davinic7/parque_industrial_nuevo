@@ -421,36 +421,6 @@ CREATE TABLE `password_reset_requests` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
--- Tabla: mensajes (v1 - legado)
--- ----------------------------------------------------------------------------
-DROP TABLE IF EXISTS `mensajes`;
-CREATE TABLE `mensajes` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `remitente_id` int(11) NOT NULL,
-  `destinatario_id` int(11) DEFAULT NULL COMMENT 'NULL = mensaje al ministerio',
-  `empresa_id` int(11) DEFAULT NULL,
-  `asunto` varchar(255) NOT NULL,
-  `categoria` varchar(80) DEFAULT NULL,
-  `contenido` text NOT NULL,
-  `adjuntos` text DEFAULT NULL,
-  `leido` tinyint(1) DEFAULT 0,
-  `fecha_lectura` datetime DEFAULT NULL,
-  `archivado` tinyint(1) DEFAULT 0,
-  `mensaje_padre_id` int(11) DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `remitente_id` (`remitente_id`),
-  KEY `empresa_id` (`empresa_id`),
-  KEY `mensaje_padre_id` (`mensaje_padre_id`),
-  KEY `idx_destinatario` (`destinatario_id`),
-  KEY `idx_leido` (`leido`),
-  CONSTRAINT `mensajes_ibfk_1` FOREIGN KEY (`remitente_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `mensajes_ibfk_2` FOREIGN KEY (`destinatario_id`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
-  CONSTRAINT `mensajes_ibfk_3` FOREIGN KEY (`empresa_id`) REFERENCES `empresas` (`id`) ON DELETE SET NULL,
-  CONSTRAINT `mensajes_ibfk_4` FOREIGN KEY (`mensaje_padre_id`) REFERENCES `mensajes` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ----------------------------------------------------------------------------
 -- Tabla: conversaciones
 -- ----------------------------------------------------------------------------
 DROP TABLE IF EXISTS `conversaciones`;

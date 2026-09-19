@@ -22,7 +22,6 @@ require_once BASEPATH . '/includes/comunicaciones.php';
 $coms_activo = FEATURE_CENTRO_COMS && coms_schema_disponible();
 
 $badge_notif = 0;
-$badge_inbox = 0;
 $badge_coms  = 0;
 $db_layout = null;
 try {
@@ -34,9 +33,6 @@ try {
     }
     if ($coms_activo) {
         $badge_coms = coms_contar_no_leidos('ministerio', null);
-    } else {
-        $st = $db_layout->query('SELECT COUNT(*) FROM mensajes WHERE destinatario_id IS NULL AND leido = 0');
-        $badge_inbox = $st ? (int) $st->fetchColumn() : 0;
     }
 } catch (Throwable $e) {
     error_log('ministerio_layout_header: ' . $e->getMessage());
@@ -99,13 +95,8 @@ $mn = static function (string $key) use ($ministerio_nav): string {
             <a href="formularios-dinamicos.php" class="<?= $mn('formularios_dinamicos') ?>"><i class="fa-solid fa-list-check"></i> Plantillas</a>
 
             <div class="empresa-sidebar-section">Comunicación</div>
-            <?php if ($coms_activo): ?>
             <a href="comunicaciones.php" class="<?= $mn('comunicaciones') ?>"><i class="fa-solid fa-comments"></i> Comunicaciones <span class="badge bg-danger rounded-pill<?= $badge_coms === 0 ? ' d-none' : '' ?>" id="coms-badge-sidebar"><?= $badge_coms > 99 ? '99+' : $badge_coms ?></span></a>
             <a href="plantillas.php" class="<?= $mn('plantillas') ?>"><i class="fa-solid fa-file-lines"></i> Plantillas</a>
-            <?php else: ?>
-            <a href="mensajes-entrada.php" class="<?= $mn('mensajes_entrada') ?>"><i class="fa-solid fa-inbox"></i> Mensajes<?php if ($badge_inbox > 0): ?> <span class="badge bg-danger rounded-pill"><?= $badge_inbox > 99 ? '99+' : $badge_inbox ?></span><?php endif; ?></a>
-            <a href="comunicados.php" class="<?= $mn('comunicados') ?>"><i class="fa-solid fa-paper-plane"></i> Comunicados</a>
-            <?php endif; ?>
 
             <div class="empresa-sidebar-section">Catastro</div>
             <a href="lotes.php" class="<?= $mn('lotes') ?>"><i class="fa-solid fa-map"></i> Lotes del parque</a>
@@ -145,11 +136,7 @@ $mn = static function (string $key) use ($ministerio_nav): string {
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end">
                         <li class="px-3 py-2 small text-muted border-bottom mb-1"><?= e($user_email) ?></li>
-                        <?php if ($coms_activo): ?>
                         <li><a class="dropdown-item" href="comunicaciones.php"><i class="fa-solid fa-comments me-2"></i>Comunicaciones <span class="badge bg-danger ms-1<?= $badge_coms === 0 ? ' d-none' : '' ?>" id="coms-badge-topbar"><?= $badge_coms > 99 ? '99+' : (int) $badge_coms ?></span></a></li>
-                        <?php else: ?>
-                        <li><a class="dropdown-item" href="mensajes-entrada.php"><i class="fa-solid fa-inbox me-2"></i>Mensajes empresas<?php if ($badge_inbox > 0): ?> <span class="badge bg-danger ms-1"><?= (int) $badge_inbox ?></span><?php endif; ?></a></li>
-                        <?php endif; ?>
                         <li><a class="dropdown-item" href="notificaciones.php"><i class="fa-solid fa-bell me-2"></i>Notificaciones<?php if ($badge_notif > 0): ?> <span class="badge bg-primary ms-1"><?= (int) $badge_notif ?></span><?php endif; ?></a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="<?= e(PUBLIC_URL) ?>/logout.php"><i class="fa-solid fa-right-from-bracket me-2"></i>Cerrar sesión</a></li>

@@ -21,8 +21,6 @@ $user_email = $_SESSION['user_email'] ?? '';
 require_once BASEPATH . '/includes/comunicaciones.php';
 $coms_activo = FEATURE_CENTRO_COMS && coms_schema_disponible();
 
-$badge_notif = 0;
-$badge_msg   = 0;
 $badge_coms  = 0;
 $presentacion_form_id  = null;
 $presentacion_pendiente = false;
@@ -32,13 +30,6 @@ try {
     if ($user_id > 0) {
         if ($coms_activo) {
             $badge_coms = coms_contar_no_leidos('empresa', $empresa_id_layout);
-        } else {
-            $st = $db_layout->prepare('SELECT COUNT(*) FROM notificaciones WHERE usuario_id = ? AND leida = 0');
-            $st->execute([$user_id]);
-            $badge_notif = (int) $st->fetchColumn();
-            $st = $db_layout->prepare('SELECT COUNT(*) FROM mensajes WHERE destinatario_id = ? AND leido = 0');
-            $st->execute([$user_id]);
-            $badge_msg = (int) $st->fetchColumn();
         }
         if ($empresa_id_layout) {
             $stPf = $db_layout->prepare("SELECT id FROM formularios_dinamicos WHERE titulo LIKE 'Presentaci%' AND estado = 'publicado' LIMIT 1");
@@ -99,12 +90,7 @@ $nav = static function (string $key) use ($empresa_nav): string {
             </a>
             <?php endif; ?>
             <a href="publicaciones.php" class="<?= $nav('publicaciones') ?>"><i class="fa-solid fa-bullhorn"></i> Publicaciones</a>
-            <?php if ($coms_activo): ?>
             <a href="comunicaciones.php" class="<?= $nav('comunicaciones') ?>"><i class="fa-solid fa-comments"></i> Comunicaciones <span class="badge bg-danger rounded-pill<?= $badge_coms === 0 ? ' d-none' : '' ?>" id="coms-badge-sidebar"><?= $badge_coms > 99 ? '99+' : $badge_coms ?></span></a>
-            <?php else: ?>
-            <a href="mensajes.php" class="<?= $nav('mensajes') ?>"><i class="fa-solid fa-inbox"></i> Mensajes<?php if ($badge_msg > 0): ?> <span class="badge bg-danger rounded-pill"><?= $badge_msg > 99 ? '99+' : $badge_msg ?></span><?php endif; ?></a>
-            <a href="notificaciones.php" class="<?= $nav('notificaciones') ?>"><i class="fa-solid fa-bell"></i> Notificaciones<?php if ($badge_notif > 0): ?> <span class="badge bg-primary rounded-pill"><?= $badge_notif > 99 ? '99+' : $badge_notif ?></span><?php endif; ?></a>
-            <?php endif; ?>
         </nav>
         <div class="empresa-sidebar-footer">
             <a href="<?= e(PUBLIC_URL) ?>/" target="_blank" rel="noopener"><i class="fa-solid fa-globe"></i> Ver sitio público</a>
@@ -128,12 +114,7 @@ $nav = static function (string $key) use ($empresa_nav): string {
                         <li class="px-3 py-2 small text-muted border-bottom mb-1"><?= e($user_email) ?></li>
                         <li><a class="dropdown-item" href="perfil.php"><i class="fa-solid fa-building me-2"></i>Mi perfil</a></li>
                         <li><a class="dropdown-item" href="cambiar-contrasena.php"><i class="fa-solid fa-lock me-2"></i>Cambiar contraseña</a></li>
-                        <?php if ($coms_activo): ?>
                         <li><a class="dropdown-item" href="comunicaciones.php"><i class="fa-solid fa-comments me-2"></i>Comunicaciones <span class="badge bg-danger ms-1<?= $badge_coms === 0 ? ' d-none' : '' ?>" id="coms-badge-topbar"><?= $badge_coms > 99 ? '99+' : (int) $badge_coms ?></span></a></li>
-                        <?php else: ?>
-                        <li><a class="dropdown-item" href="mensajes.php"><i class="fa-solid fa-inbox me-2"></i>Mensajes<?php if ($badge_msg > 0): ?> <span class="badge bg-danger ms-1"><?= (int) $badge_msg ?></span><?php endif; ?></a></li>
-                        <li><a class="dropdown-item" href="notificaciones.php"><i class="fa-solid fa-bell me-2"></i>Notificaciones<?php if ($badge_notif > 0): ?> <span class="badge bg-primary ms-1"><?= (int) $badge_notif ?></span><?php endif; ?></a></li>
-                        <?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="<?= e(PUBLIC_URL) ?>/logout.php"><i class="fa-solid fa-right-from-bracket me-2"></i>Cerrar sesión</a></li>
                     </ul>
