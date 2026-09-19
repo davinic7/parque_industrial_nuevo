@@ -233,6 +233,17 @@ function cloudinary_safe_upload_name(string $original_name, string $extension): 
 }
 
 /**
+ * URL de un archivo estático propio de public/ (p. ej. 'js/empresa-perfil.js') con la fecha de
+ * modificación como versión (?v=...), para que el navegador lo recargue cuando cambia.
+ */
+function asset_url(string $ruta): string {
+    $ruta = ltrim($ruta, '/');
+    $archivo = BASEPATH . '/public/' . $ruta;
+    $v = is_file($archivo) ? filemtime($archivo) : 0;
+    return rtrim(PUBLIC_URL, '/') . '/' . $ruta . ($v ? '?v=' . $v : '');
+}
+
+/**
  * URL para mostrar imagen guardada: URL absoluta (Cloudinary) o ruta bajo uploads.
  */
 function uploads_resolve_url(?string $stored, string $subdir): string {
