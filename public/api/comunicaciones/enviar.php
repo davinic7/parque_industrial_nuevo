@@ -28,8 +28,8 @@ $conv_id = (int)($_POST['conversacion_id'] ?? 0);
 
 try {
     if ($conv_id > 0) {
-        // Mensaje en hilo existente: validar acceso.
-        if (!coms_puede_acceder($conv_id, $coms_actor, $coms_empresa_id)) {
+        // Mensaje en hilo existente: validar que pueda escribir (no solo leer).
+        if (!coms_puede_escribir($conv_id, $coms_actor, $coms_empresa_id)) {
             coms_json_error(403, 'No tiene acceso a esta conversacion.');
         }
     } else {

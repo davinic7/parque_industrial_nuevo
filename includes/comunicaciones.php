@@ -499,6 +499,27 @@ function coms_puede_acceder(int $conversacion_id, string $actor, ?int $empresa_i
 }
 
 /**
+ * Verifica que un actor pueda ESCRIBIR (mensajes, borradores, adjuntos) en una
+ * conversacion. Mas estricto que coms_puede_acceder(): las empresas leen los
+ * comunicados globales (empresa_id NULL) pero solo escriben en sus propios hilos;
+ * si no, una empresa podria publicar mensajes visibles para todas las demas.
+ */
+function coms_puede_escribir(int $conversacion_id, string $actor, ?int $empresa_id = null): bool {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT empresa_id FROM conversaciones WHERE id = ?");
+    $stmt->execute([$conversacion_id]);
+    $row = $stmt->fetch();
+    if (!$row) return false;
+
+    if ($actor === 'ministerio') return true;
+
+    return $actor === 'empresa'
+        && $empresa_id
+        && $row['empresa_id'] !== null
+        && (int)$row['empresa_id'] === $empresa_id;
+}
+
+/**
  * Inserta un adjunto en un mensaje. NO valida tipo/tamano: eso lo hace
  * el endpoint que recibe el upload con COMS_ALLOWED_MIMES y COMS_MAX_TOTAL_BYTES.
  */

@@ -6,7 +6,8 @@
   "scripts": {
     "test": "node test_pantanillo.js",
     "test:fast": "SLOW_MO=0 node test_pantanillo.js",
-    "test:seguridad": "php tests/seguridad.php"
+    "test:seguridad": "php tests/seguridad.php",
+    "test:aislamiento": "php tests/aislamiento.php"
   },
   "keywords": [],
   "author": "",

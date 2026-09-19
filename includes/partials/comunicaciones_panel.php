@@ -286,7 +286,7 @@ $coms_empresas_destino      = $coms_empresas_destino      ?? [];
 
                 <div class="coms-thread-body" id="coms-thread-msgs"></div>
 
-                <div class="coms-editor">
+                <div class="coms-editor" id="coms-editor">
                     <div id="coms-attachments-preview" class="mb-2 d-flex flex-wrap gap-2"></div>
                     <textarea id="coms-editor-text" class="form-control" placeholder="Escriba su mensaje..."></textarea>
                     <div class="editor-toolbar justify-content-between">
@@ -554,6 +554,10 @@ document.addEventListener('DOMContentLoaded', function () {
         const archivada = data.conversacion.estado === 'archivada';
         document.querySelector('[data-act="archivar"]').classList.toggle('d-none', archivada);
         document.querySelector('[data-act="desarchivar"]').classList.toggle('d-none', !archivada);
+
+        // Las empresas leen los comunicados globales pero no pueden responderlos (el servidor lo rechaza).
+        const editor = document.getElementById('coms-editor');
+        if (editor) editor.classList.toggle('d-none', data.conversacion.es_comunicado_global && shell.dataset.actor === 'empresa');
 
         const refCard = renderReferenciaCard(data.referencia);
         $threadMsgs.innerHTML = refCard + data.mensajes.map(m => renderMsg(m)).join('');

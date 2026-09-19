@@ -36,7 +36,7 @@ if (!$msg) {
 if ((int)$msg['remitente_id'] !== $coms_user_id) {
     coms_json_error(403, 'No puede adjuntar archivos a un mensaje ajeno.');
 }
-if (!coms_puede_acceder((int)$msg['conversacion_id'], $coms_actor, $coms_empresa_id)) {
+if (!coms_puede_escribir((int)$msg['conversacion_id'], $coms_actor, $coms_empresa_id)) {
     coms_json_error(403, 'No tiene acceso a esta conversacion.');
 }
 

@@ -23,7 +23,7 @@ if ($conv_id <= 0) {
     coms_json_error(400, 'conversacion_id es obligatorio.');
 }
 
-if (!coms_puede_acceder($conv_id, $coms_actor, $coms_empresa_id)) {
+if (!coms_puede_escribir($conv_id, $coms_actor, $coms_empresa_id)) {
     coms_json_error(403, 'No tiene acceso a esta conversacion.');
 }
 
