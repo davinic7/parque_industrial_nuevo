@@ -83,11 +83,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verify_csrf($_POST[CSRF_TOKEN_NAME]
                     }
                     if (!empty($_FILES['pregunta_adj_file']['name'][$i])) {
                         $file_tmp  = $_FILES['pregunta_adj_file']['tmp_name'][$i];
-                        $file_type = $_FILES['pregunta_adj_file']['type'][$i];
-                        $file_name = $_FILES['pregunta_adj_file']['name'][$i];
                         $allowed   = ['image/jpeg','image/png','image/webp','image/gif','application/pdf'];
-                        if (in_array($file_type, $allowed, true)) {
-                            $ext      = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+                        // MIME real del contenido (el 'type' del cliente es falsificable) y extensión derivada de él
+                        $file_type = is_uploaded_file($file_tmp) ? (new finfo(FILEINFO_MIME_TYPE))->file($file_tmp) : '';
+                        $ext       = safe_extension_for_mime((string) $file_type);
+                        if (in_array($file_type, $allowed, true) && $ext !== null) {
                             $new_name = 'adj_' . uniqid() . '.' . $ext;
                             $dest     = UPLOADS_PATH . '/formularios/' . $new_name;
                             if (!is_dir(UPLOADS_PATH . '/formularios')) mkdir(UPLOADS_PATH . '/formularios', 0775, true);

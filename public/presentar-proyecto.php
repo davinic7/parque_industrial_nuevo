@@ -76,7 +76,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $error = "El archivo $n no es un tipo permitido (PDF, JPG, PNG, DOC, DOCX).";
                         break;
                     }
-                    $ext     = pathinfo($file['name'], PATHINFO_EXTENSION);
+                    // Extensión derivada del MIME verificado, nunca del nombre del cliente (evita subir "x.php")
+                    $ext     = safe_extension_for_mime($mime);
+                    if ($ext === null) {
+                        $error = "El archivo $n no es un tipo permitido (PDF, JPG, PNG, DOC, DOCX).";
+                        break;
+                    }
                     $nombre  = uniqid("doc{$n}_") . '_' . time() . '.' . $ext;
                     $destino = $doc_dir . '/' . $nombre;
                     if (move_uploaded_file($file['tmp_name'], $destino)) {

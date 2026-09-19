@@ -236,6 +236,37 @@ function uploads_resolve_url(?string $stored, string $subdir): string {
 }
 
 /**
+ * Extensión segura para un MIME ya validado. Nunca usar la extensión del
+ * nombre de archivo del cliente: un atacante puede subir "shell.php" con
+ * contenido cuyo encabezado engaña a finfo (p. ej. "%PDF-1.4\n<?php ...?>"
+ * es detectado como application/pdf) y, si se conserva la extensión .php,
+ * el servidor lo ejecuta como código en vez de servirlo como documento.
+ * Devuelve null si el MIME no tiene una extensión segura mapeada: en ese
+ * caso el caller debe rechazar la subida en vez de usar la del cliente.
+ */
+function safe_extension_for_mime(string $mime): ?string {
+    static $map = [
+        'image/jpeg' => 'jpg',
+        'image/png' => 'png',
+        'image/gif' => 'gif',
+        'image/webp' => 'webp',
+        'image/svg+xml' => 'svg',
+        'application/pdf' => 'pdf',
+        'application/msword' => 'doc',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
+        'application/vnd.ms-excel' => 'xls',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'xlsx',
+        'application/vnd.ms-powerpoint' => 'ppt',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation' => 'pptx',
+        'application/zip' => 'zip',
+        'application/x-zip-compressed' => 'zip',
+        'text/plain' => 'txt',
+        'text/csv' => 'csv',
+    ];
+    return $map[$mime] ?? null;
+}
+
+/**
  * MIME detectado y normalizado a uno de la lista permitida (JPG a veces llega como octet-stream).
  */
 function resolve_upload_mime_to_allowed(array $file, array $allowed): ?string {
@@ -341,9 +372,13 @@ function upload_file($file, $directory = '', $allowed_types = null, ?string $ver
         return ['success' => false, 'error' => 'Tipo de archivo no permitido'];
     }
     
-    $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+    // La extensión sale del MIME verificado, nunca del nombre que manda el cliente.
+    $extension = safe_extension_for_mime((string) $mime_type);
+    if ($extension === null) {
+        return ['success' => false, 'error' => 'Tipo de archivo no permitido'];
+    }
     $filename = uniqid() . '_' . time() . '.' . $extension;
-    
+
     $upload_dir = UPLOADS_PATH . ($directory ? '/' . $directory : '');
     if (!is_dir($upload_dir)) {
         mkdir($upload_dir, 0755, true);

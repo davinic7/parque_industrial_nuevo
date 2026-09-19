@@ -73,11 +73,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $adj_key  = 'pregunta_adj_file';
                         if (!empty($_FILES[$adj_key]['name'][$i])) {
                             $file_tmp  = $_FILES[$adj_key]['tmp_name'][$i];
-                            $file_name = $_FILES[$adj_key]['name'][$i];
-                            $file_type = $_FILES[$adj_key]['type'][$i];
                             $allowed   = ['image/jpeg','image/png','image/webp','image/gif','application/pdf'];
-                            if (in_array($file_type, $allowed, true)) {
-                                $ext      = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+                            // MIME real del contenido (el 'type' del cliente es falsificable) y extensión derivada de él
+                            $file_type = is_uploaded_file($file_tmp) ? (new finfo(FILEINFO_MIME_TYPE))->file($file_tmp) : '';
+                            $ext       = safe_extension_for_mime((string) $file_type);
+                            if (in_array($file_type, $allowed, true) && $ext !== null) {
                                 $new_name = 'adj_' . uniqid() . '.' . $ext;
                                 $dest     = UPLOADS_PATH . '/formularios/' . $new_name;
                                 if (!is_dir(UPLOADS_PATH . '/formularios')) {
