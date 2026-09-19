@@ -564,6 +564,7 @@ $js_cfg  = json_encode([
     'initLat'    => (float)($empresa['latitud'] ?? 0),
     'initLng'    => (float)($empresa['longitud'] ?? 0),
     'loteEstado' => $empresa['lote_solicitud_estado'] ?? 'sin_solicitud',
+    'loteDeclarado' => $empresa['lote_declarado'] ?? '',
 ]);
 $extra_scripts = '<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>'
     . '<script src="' . $pu . '/js/parque-leaflet.js"></script>'
@@ -715,7 +716,7 @@ $extra_scripts = '<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/l
     document.getElementById('longitud').addEventListener('change', onCoordInput);
 
     /* Advertencia: si hay lote pendiente y se guarda fuera del parque, se pierde */
-    var _lotePendienteNumero = <?= json_encode($empresa['lote_declarado'] ?? '') ?>;
+    var _lotePendienteNumero = __CFG.loteDeclarado;
     var _formConfirmado = false;
     document.getElementById('formPerfil').addEventListener('submit', function(e) {
         if (_formConfirmado) return;
