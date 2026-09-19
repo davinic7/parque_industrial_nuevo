@@ -340,71 +340,8 @@ $chk = function ($on) use ($ro) {
 
 $empresa_nav = 'formularios';
 $empresa_body_extra = $modo_consulta ? 'dj-mod-consulta' : '';
-$extra_head = '<link href="' . PUBLIC_URL . '/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
-<style>
-        .dj-page { max-width: 920px; }
-        .dj-consulta-banner {
-            border-left: 4px solid #0d6efd;
-            background: linear-gradient(90deg, rgba(13,110,253,.08), transparent);
-            border-radius: 0 12px 12px 0;
-            padding: 12px 16px;
-            margin-bottom: 1.25rem;
-        }
-        .dj-section {
-            border: 1px solid rgba(0,0,0,.06);
-            border-radius: 16px;
-            background: #fff;
-            box-shadow: 0 2px 12px rgba(0,0,0,.04);
-            margin-bottom: 1.25rem;
-            overflow: hidden;
-        }
-        .dj-section-head {
-            display: flex;
-            align-items: center;
-            gap: .75rem;
-            padding: 14px 18px;
-            background: #f8f9fa;
-            border-bottom: 1px solid rgba(0,0,0,.06);
-            font-weight: 600;
-            font-size: .95rem;
-            color: #212529;
-        }
-        .dj-section-head i { font-size: 1.15rem; color: var(--primary, #0d6efd); }
-        .dj-section-body { padding: 18px; }
-        .dj-stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
-        .dj-stat {
-            background: #f8f9fa;
-            border-radius: 12px;
-            padding: 12px 14px;
-            border: 1px solid rgba(0,0,0,.04);
-        }
-        .dj-stat label { font-size: .75rem; text-transform: uppercase; letter-spacing: .03em; color: #6c757d; margin-bottom: 4px; }
-        .dj-mini { font-size: .8rem; color: #6c757d; }
-        .table-dj-actions { white-space: nowrap; }
-        /* Consumos/servicios: label arriba + switch abajo (evita solapamiento del margin negativo de BS) */
-        .dj-switch-cell {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 0.5rem;
-        }
-        .dj-switch-cell > label.form-label {
-            line-height: 1.35;
-            margin-bottom: 0;
-            font-weight: 500;
-        }
-        .dj-switch-cell .form-check.form-switch {
-            padding-left: 0;
-            margin-bottom: 0;
-            min-height: 1.5rem;
-        }
-        .dj-switch-cell .form-switch .form-check-input {
-            margin-left: 0;
-            float: none;
-            position: relative;
-            cursor: pointer;
-        }
-    </style>';
+$extra_head = '<link href="' . PUBLIC_URL . '/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">'
+    . '<link rel="stylesheet" href="' . asset_url('css/empresa-formularios.css') . '">';
 require_once BASEPATH . '/includes/empresa_layout_header.php';
 ?>
         <div class="dj-page">
@@ -742,68 +679,6 @@ require_once BASEPATH . '/includes/empresa_layout_header.php';
         </div>
 
 <?php
-$extra_scripts = '<script src="' . PUBLIC_URL . '/vendor/sweetalert2/sweetalert2.all.min.js"></script>' . <<<'EOT'
-    <script>
-    (function() {
-        const form = document.getElementById('djForm');
-        const accionEl = document.getElementById('djAccion');
-        const exporta = document.getElementById('exporta');
-        const importa = document.getElementById('importa');
-        if (exporta && !exporta.disabled) {
-            exporta.addEventListener('change', function() {
-                const el = document.getElementById('exportaFields');
-                if (el) el.classList.toggle('d-none', !this.checked);
-            });
-        }
-        if (importa && !importa.disabled) {
-            importa.addEventListener('change', function() {
-                const el = document.getElementById('importaFields');
-                if (el) el.classList.toggle('d-none', !this.checked);
-            });
-        }
-
-        if (!form || !accionEl || form.classList.contains('dj-no-js')) return;
-
-        const btnG = document.getElementById('djBtnGuardar');
-        const btnE = document.getElementById('djBtnEnviar');
-        if (!btnG || !btnE) return;
-
-        btnG.addEventListener('click', function() {
-            Swal.fire({
-                title: '¿Guardar borrador?',
-                text: 'Los datos quedarán guardados sin enviar al Ministerio. Podés continuar más tarde.',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Sí, guardar',
-                cancelButtonText: 'Cancelar',
-                confirmButtonColor: '#6c757d'
-            }).then(function(r) {
-                if (!r.isConfirmed) return;
-                accionEl.value = 'guardar';
-                form.submit();
-            });
-        });
-
-        btnE.addEventListener('click', function() {
-            if (!form.checkValidity()) {
-                form.reportValidity();
-                return;
-            }
-            Swal.fire({
-                title: '¿Enviar declaración jurada?',
-                html: 'Al enviar, el Ministerio podrá revisar los datos. <strong>No podrás editarlos</strong> hasta una resolución (salvo que sea rechazado).',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'Sí, enviar',
-                cancelButtonText: 'Cancelar',
-                confirmButtonColor: '#0d6efd'
-            }).then(function(r) {
-                if (!r.isConfirmed) return;
-                accionEl.value = 'enviar';
-                form.submit();
-            });
-        });
-    })();
-    </script>
-EOT;
+$extra_scripts = '<script src="' . PUBLIC_URL . '/vendor/sweetalert2/sweetalert2.all.min.js"></script>'
+    . '<script src="' . asset_url('js/empresa-formularios.js') . '"></script>';
 require_once BASEPATH . '/includes/empresa_layout_footer.php';

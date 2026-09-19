@@ -67,7 +67,7 @@ Session keys: `user_id`, `user_email`, `user_rol` (`empresa`/`ministerio`/`admin
 3. PDO prepared statement (`?` placeholders only — no string interpolation in queries)
 4. `set_flash()` → `redirect()` → `show_flash()` on next page
 
-### Key Helper Functions (`includes/funciones.php`)
+### Key Helper Functions (`includes/funciones.php`, loader of `includes/funciones/*.php` by topic: web, formato, validacion, archivos, base_datos, actividad, correo, recaptcha, visitas)
 
 - `e($str)` — HTML escape (use everywhere user content is output)
 - `csrf_field()` / `verify_csrf()` — CSRF protection

@@ -58,10 +58,11 @@ $paginas = [
     'público'    => [$anon, ['/', '/login.php', '/empresas.php', '/mapa.php', '/noticias.php', '/estadisticas.php', '/nosotros.php',
                              '/parque.php', '/el-parque.php', '/presentar-proyecto.php', '/recuperar.php']],
     'empresa'    => [$ce, ['/empresa/dashboard.php', '/empresa/formularios.php', '/empresa/mis-datos.php', '/empresa/perfil.php',
-                           '/empresa/publicaciones.php', '/empresa/comunicaciones.php']],
+                           '/empresa/publicaciones.php', '/empresa/comunicaciones.php', '/empresa/formulario_dinamico.php?id=1']],
     'ministerio' => [$cm, ['/ministerio/dashboard.php', '/ministerio/graficos.php', '/ministerio/lotes.php', '/ministerio/sitio-publico.php',
                            '/ministerio/empresa-metricas.php', '/ministerio/formularios.php', '/ministerio/comunicaciones.php',
-                           '/ministerio/publicaciones.php', '/ministerio/empresas.php', '/ministerio/plantillas.php']],
+                           '/ministerio/publicaciones.php', '/ministerio/empresas.php', '/ministerio/plantillas.php',
+                           '/ministerio/formulario-gestion.php?id=1&tab=enviar', '/ministerio/formulario-gestion.php?id=1&tab=envios']],
 ];
 
 $locales = [];   // ruta absoluta (path) => páginas que la usan

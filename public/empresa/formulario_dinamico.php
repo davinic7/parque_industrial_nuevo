@@ -550,161 +550,24 @@ $puJs = htmlspecialchars(PUBLIC_URL, ENT_QUOTES, 'UTF-8');
 ?>
     <script src="<?= PUBLIC_URL ?>/vendor/leaflet/leaflet.js"></script>
     <script src="<?= $puJs ?>/js/parque-leaflet.js"></script>
-    <script>
-    // ── Contador de caracteres ─────────────────────────────────
-    document.querySelectorAll('.campo-con-contador').forEach(function(el) {
-        var max   = parseInt(el.getAttribute('maxlength')) || 0;
-        var wrap  = el.parentElement.querySelector('.char-counter-wrap');
-        var span  = wrap ? wrap.querySelector('.chars-remaining') : null;
-        if (!span || !max) return;
-
-        // Filtro numérico para campos número
-        if (el.getAttribute('inputmode') === 'decimal') {
-            el.addEventListener('input', function() {
-                this.value = this.value.replace(/[^0-9.,\-]/g, '');
-            });
-        }
-
-        function actualizar() {
-            var rem = max - el.value.length;
-            span.textContent = rem;
-            if (wrap) {
-                wrap.classList.toggle('text-danger',  rem <= 5);
-                wrap.classList.toggle('text-warning', rem > 5 && rem <= 20);
-            }
-        }
-        el.addEventListener('input', actualizar);
-        actualizar(); // Inicializar con valor actual
-    });
-    // ─────────────────────────────────────────────────────────────
-    </script>
-    <script>
-    // Mapa de instancias para campos direccion (accedido por dirActualizarMapa)
-    var _dirMaps = {};
-
-    function dirActualizarMapa(id) {
-        var latInput = document.getElementById('dir_lat_' + id);
-        var lngInput = document.getElementById('dir_lng_' + id);
-        var mapInst = _dirMaps[id];
-        if (!latInput || !lngInput || !mapInst) return;
-        var lat = parseFloat(latInput.value);
-        var lng = parseFloat(lngInput.value);
-        if (isNaN(lat) || isNaN(lng)) return;
-        mapInst.map.setView([lat, lng], 16);
-        if (mapInst.marker) mapInst.map.removeLayer(mapInst.marker);
-        mapInst.marker = L.marker([lat, lng]).addTo(mapInst.map);
-        var hidden = document.getElementById('campo_' + id);
-        if (hidden) hidden.value = lat.toFixed(8) + ',' + lng.toFixed(8);
+<?php
+// Preguntas que llevan mapa: tipo "direccion" o etiqueta con "ubicacion" (mismo criterio que el HTML de cada campo)
+$fd_mapas = [];
+foreach (($preguntas ?? []) as $p) {
+    $tipo_p = strtolower(trim($p['tipo'] ?? ''));
+    $es_ubicacion = (stripos($p['etiqueta'], 'ubicacion') !== false || stripos($p['etiqueta'], 'ubicación') !== false);
+    $es_direccion = ($tipo_p === 'direccion');
+    if ($es_direccion || $es_ubicacion) {
+        $fd_mapas[] = ['pid' => (int) $p['id'], 'tipo' => $es_direccion ? 'direccion' : 'ubicacion'];
     }
-
-    document.addEventListener('DOMContentLoaded', function() {
-        <?php if (!empty($preguntas)): ?>
-        <?php foreach ($preguntas as $p):
-            $campo_name = 'campo_' . $p['id'];
-            $tipo_p = strtolower(trim($p['tipo'] ?? ''));
-            $es_ubicacion = (stripos($p['etiqueta'], 'ubicacion') !== false || stripos($p['etiqueta'], 'ubicación') !== false);
-            $es_direccion = ($tipo_p === 'direccion');
-            if (!$es_ubicacion && !$es_direccion) {
-                continue;
-            }
-        ?>
-        <?php if ($es_direccion): ?>
-        (function() {
-            var pid = <?= (int) $p['id'] ?>;
-            var latInput = document.getElementById('dir_lat_' + pid);
-            var lngInput = document.getElementById('dir_lng_' + pid);
-            var mapEl   = document.getElementById('mapDir' + pid);
-            var hidden  = document.getElementById('<?= e($campo_name) ?>');
-            if (!latInput || !lngInput || !mapEl || !hidden) return;
-
-            var defLat = <?= (float) MAP_DEFAULT_LAT ?>;
-            var defLng = <?= (float) MAP_DEFAULT_LNG ?>;
-            var initLat = defLat, initLng = defLng, hasVal = false;
-
-            if (hidden.value && hidden.value.includes(',')) {
-                var parts = hidden.value.split(',');
-                var lp = parseFloat(parts[0]), lgp = parseFloat(parts[1]);
-                if (!isNaN(lp) && !isNaN(lgp)) {
-                    initLat = lp; initLng = lgp;
-                    latInput.value = lp.toFixed(6);
-                    lngInput.value = lgp.toFixed(6);
-                    hasVal = true;
-                }
-            }
-
-            var map = L.map(mapEl).setView([initLat, initLng], hasVal ? 16 : 14);
-            ParqueLeaflet.addSatelliteLayer(map);
-            ParqueLeaflet.addParquePolygon(map);
-
-            var marker = null;
-            if (hasVal) {
-                marker = L.marker([initLat, initLng], {draggable: true}).addTo(map);
-                marker.on('dragend', function(ev) {
-                    var pos = ev.target.getLatLng();
-                    latInput.value = pos.lat.toFixed(6);
-                    lngInput.value = pos.lng.toFixed(6);
-                    hidden.value = pos.lat.toFixed(8) + ',' + pos.lng.toFixed(8);
-                });
-            }
-
-            _dirMaps[pid] = { map: map, marker: marker };
-
-            map.on('click', function(ev) {
-                if (_dirMaps[pid].marker) map.removeLayer(_dirMaps[pid].marker);
-                var m = L.marker(ev.latlng, {draggable: true}).addTo(map);
-                m.on('dragend', function(de) {
-                    var pos = de.target.getLatLng();
-                    latInput.value = pos.lat.toFixed(6);
-                    lngInput.value = pos.lng.toFixed(6);
-                    hidden.value = pos.lat.toFixed(8) + ',' + pos.lng.toFixed(8);
-                });
-                _dirMaps[pid].marker = m;
-                latInput.value = ev.latlng.lat.toFixed(6);
-                lngInput.value = ev.latlng.lng.toFixed(6);
-                hidden.value = ev.latlng.lat.toFixed(8) + ',' + ev.latlng.lng.toFixed(8);
-            });
-        })();
-        <?php else: ?>
-        (function() {
-            const input = document.getElementById('<?= e($campo_name) ?>');
-            const mapEl = document.getElementById('mapUbicacion<?= (int) $p['id'] ?>');
-            if (!input || !mapEl) return;
-
-            let lat = <?= (float) MAP_DEFAULT_LAT ?>;
-            let lng = <?= (float) MAP_DEFAULT_LNG ?>;
-
-            if (input.value && input.value.includes(',')) {
-                const parts = input.value.split(',');
-                const latParsed = parseFloat(parts[0]);
-                const lngParsed = parseFloat(parts[1]);
-                if (!isNaN(latParsed) && !isNaN(lngParsed)) {
-                    lat = latParsed;
-                    lng = lngParsed;
-                }
-            }
-
-            const map = L.map(mapEl).setView([lat, lng], 14);
-            ParqueLeaflet.addSatelliteLayer(map);
-            ParqueLeaflet.addParquePolygon(map);
-
-            let marker = null;
-            if (input.value && input.value.includes(',')) {
-                marker = L.marker([lat, lng]).addTo(map);
-            }
-
-            map.on('click', function(e) {
-                if (marker) map.removeLayer(marker);
-                marker = L.marker(e.latlng).addTo(map);
-                const latStr = e.latlng.lat.toFixed(8);
-                const lngStr = e.latlng.lng.toFixed(8);
-                input.value = latStr + ',' + lngStr;
-            });
-        })();
-        <?php endif; ?>
-        <?php endforeach; ?>
-        <?php endif; ?>
-    });
-    </script>
+}
+?>
+    <script>window.FD_CFG = <?= json_encode([
+        'defLat' => (float) MAP_DEFAULT_LAT,
+        'defLng' => (float) MAP_DEFAULT_LNG,
+        'mapas'  => $fd_mapas,
+    ], JSON_HEX_TAG | JSON_HEX_AMP) ?>;</script>
+    <script src="<?= asset_url('js/empresa-formulario-dinamico.js') ?>"></script>
 <?php
 $extra_scripts = ob_get_clean();
 require_once BASEPATH . '/includes/empresa_layout_footer.php';

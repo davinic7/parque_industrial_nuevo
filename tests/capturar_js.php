@@ -58,6 +58,10 @@ $paginas = [
     'form_gestion_respuestas' => [$cm, "/ministerio/formulario-gestion.php?id=$formId&tab=respuestas"],
     'form_gestion_envios'    => [$cm, "/ministerio/formulario-gestion.php?id=$formId&tab=envios"],
     'form_gestion_enviar'    => [$cm, "/ministerio/formulario-gestion.php?id=$formId&tab=enviar"],
+    'empresa_comunicaciones'    => [$ce, '/empresa/comunicaciones.php'],
+    'ministerio_comunicaciones' => [$cm, '/ministerio/comunicaciones.php'],
+    'empresa_formularios'       => [$ce, '/empresa/formularios.php'],
+    'empresa_formulario_dinamico' => [$ce, "/empresa/formulario_dinamico.php?id=$formId"],
 ];
 
 foreach ($paginas as $nombre => [$cli, $ruta]) {
@@ -82,6 +86,21 @@ foreach ($paginas as $nombre => [$cli, $ruta]) {
         }
         $js .= "//=== inline ===\n" . $s[2] . "\n";
     }
+    // CSS efectivo: <style> inline y hojas propias de /css/ (en orden de aparición)
+    $css = '';
+    preg_match_all('#<style\b[^>]*>(.*?)</style>|<link\b[^>]*rel=["\']stylesheet["\'][^>]*href=["\']([^"\']+)["\'][^>]*>#is', $html, $mc, PREG_SET_ORDER);
+    foreach ($mc as $c) {
+        if (!empty($c[1])) { $css .= "/*=== inline ===*/
+" . $c[1] . "
+"; continue; }
+        $p = parse_url(html_entity_decode($c[2] ?? ''), PHP_URL_PATH);
+        if ($p !== null && preg_match('#/css/(?!.*vendor)[^/]+\.css$#', $p) && !preg_match('#/css/(styles|empresa-app)\.css$#', $p)) {
+            $css .= "/*=== externo " . basename($p) . " ===*/
+" . $cli->get($p)['body'] . "
+";
+        }
+    }
+    file_put_contents("$salida/$nombre.css", $css);
     file_put_contents("$salida/$nombre.js", $js);
     file_put_contents("$salida/$nombre.html", $html);
     echo sprintf("%-26s %6d bytes de JS, %6d de HTML\n", $nombre, strlen($js), strlen($html));

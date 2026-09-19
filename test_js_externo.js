@@ -19,11 +19,16 @@ const CRED = {
 };
 const FORM_ID = process.env.FORM_ID || '1';
 
-let ok = 0;
+let ok = 0, omitidas = 0;
 const fallos = [];
+/** Una prueba lanza new Omitir('motivo') cuando la base no tiene los datos necesarios: se informa, no pasa en silencio. */
+class Omitir extends Error {}
 async function prueba(nombre, fn) {
   try { await fn(); ok++; console.log(`  OK   ${nombre}`); }
-  catch (e) { fallos.push(nombre); console.log(`  FAIL ${nombre}\n       ${String(e.message).split('\n')[0]}`); }
+  catch (e) {
+    if (e instanceof Omitir) { omitidas++; console.log(`  OMITIDA ${nombre}\n       ${e.message}`); return; }
+    fallos.push(nombre); console.log(`  FAIL ${nombre}\n       ${String(e.message).split('\n')[0]}`);
+  }
 }
 function igual(esperado, real, msg = '') {
   if (JSON.stringify(esperado) !== JSON.stringify(real)) throw new Error(`${msg}: esperado ${JSON.stringify(esperado)}, obtenido ${JSON.stringify(real)}`);
@@ -78,6 +83,44 @@ function sinErrores(s) {
       await s.page.waitForFunction(() => (document.getElementById('logoPreview').src || '').startsWith('data:image/png'), null, { timeout: 5000 });
       igual('logo-prueba.png', (await s.page.textContent('#logoFileName')).trim(), 'nombre mostrado');
     });
+    console.log('\nComunicaciones (js/comunicaciones-panel.js, js/comunicaciones-categorias.js, css/comunicaciones-panel.css)');
+    await ir(s, '/empresa/comunicaciones.php');
+    await prueba('empresa: el panel carga sin errores, con estilos, lista de conversaciones y categorías reordenables', async () => {
+      sinErrores(s);
+      verdadero(await s.page.evaluate(() => getComputedStyle(document.getElementById('coms-shell')).display === 'grid'), 'no se aplicó el CSS del panel (coms-shell no es grid)');
+      await s.page.waitForFunction(() => document.querySelectorAll('#coms-list-items .conv-item').length > 0 || /No hay|vac/i.test(document.getElementById('coms-list-items').textContent), null, { timeout: 8000 });
+      verdadero(await s.page.evaluate(() => !!document.getElementById('coms-cat-sortable')._sortable), 'las categorías no son reordenables (Sortable no se inicializó)');
+    });
+    await prueba('empresa: abrir una conversación muestra su hilo y el editor', async () => {
+      const item = s.page.locator('#coms-list-items .conv-item').first();
+      if (await item.count() === 0) throw new Omitir('la empresa de la cuenta demo no tiene conversaciones');
+      const titulo = (await item.locator('.conv-title').textContent()).trim();
+      await item.click();
+      await s.page.waitForFunction(() => document.querySelectorAll('#coms-thread-msgs .coms-msg').length > 0, null, { timeout: 8000 });
+      verdadero((await s.page.textContent('#coms-thread-title')).includes(titulo.slice(0, 10)), 'el título del hilo no coincide con la conversación elegida');
+      verdadero(await s.page.locator('#coms-editor-text').count() === 1, 'no está el editor');
+    });
+
+    console.log('\nDeclaraciones de datos (js/empresa-formularios.js, css/empresa-formularios.css)');
+    await ir(s, '/empresa/formularios.php');
+    await prueba('carga sin errores y los estilos y el JS externos se aplican', async () => {
+      sinErrores(s);
+      verdadero(await s.page.locator('link[href*="empresa-formularios.css"]').count() === 1, 'falta la hoja de estilos');
+      verdadero(await s.page.locator('script[src*="empresa-formularios.js"]').count() === 1, 'falta el script');
+      verdadero(await s.page.evaluate(() => typeof Swal === 'function'), 'SweetAlert2 no está cargado');
+    });
+    await prueba('"Guardar borrador" pide confirmación con SweetAlert2 y "Cancelar" no envía el formulario', async () => {
+      const boton = s.page.locator('#djBtnGuardar');
+      if (await boton.count() === 0) throw new Omitir('la declaración está en modo consulta (sin botones de edición)');
+      const antes = s.page.url();
+      await boton.click();
+      await s.page.waitForSelector('.swal2-popup', { timeout: 5000 });
+      verdadero((await s.page.textContent('.swal2-title')).includes('Guardar borrador'), 'título del aviso inesperado');
+      await s.page.click('.swal2-cancel');
+      await s.page.waitForSelector('.swal2-popup', { state: 'detached', timeout: 5000 });
+      await s.page.waitForTimeout(400);
+      igual(antes, s.page.url(), 'la página cambió tras cancelar');
+    });
     await s.ctx.close();
 
     // ── Ministerio ────────────────────────────────────────────────────────────
@@ -109,6 +152,14 @@ function sinErrores(s) {
       if (primero) verdadero(contenido.includes(String(primero)), `el CSV no contiene el lote ${primero}`);
     });
 
+    console.log('\nComunicaciones del Ministerio');
+    await ir(s, '/ministerio/comunicaciones.php');
+    await prueba('ministerio: el panel carga sin errores, con estilos y categorías reordenables', async () => {
+      sinErrores(s);
+      verdadero(await s.page.evaluate(() => getComputedStyle(document.getElementById('coms-shell')).display === 'grid'), 'no se aplicó el CSS del panel');
+      await s.page.waitForFunction(() => document.querySelectorAll('#coms-list-items .conv-item').length > 0 || /No hay|vac/i.test(document.getElementById('coms-list-items').textContent), null, { timeout: 8000 });
+      verdadero(await s.page.evaluate(() => !!document.getElementById('coms-cat-sortable')._sortable), 'Sortable no se inicializó');
+    });
     console.log('\nSitio público (js/ministerio-sitio-publico.js)');
     await ir(s, '/ministerio/sitio-publico.php?tab=el_parque');
     let cantidad = 0;
@@ -183,6 +234,6 @@ function sinErrores(s) {
   } finally {
     await browser.close();
   }
-  console.log(`\nResultado: ${ok} de ${ok + fallos.length} pruebas OK\n`);
+  console.log(`\nResultado: ${ok} de ${ok + fallos.length} pruebas OK` + (omitidas ? ` (${omitidas} omitidas)` : '') + '\n');
   process.exit(fallos.length ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });

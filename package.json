@@ -13,7 +13,8 @@
     "test:assets": "php tests/assets.php",
     "test:sin-cdn": "node test_sin_cdn.js",
     "test:mantenimiento": "php tests/mantenimiento.php",
-    "test:js-externo": "node test_js_externo.js"
+    "test:js-externo": "node test_js_externo.js",
+    "test:js-formulario": "php tests/js_formulario_dinamico.php"
   },
   "keywords": [],
   "author": "",
