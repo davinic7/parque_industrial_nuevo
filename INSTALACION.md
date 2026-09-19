@@ -164,7 +164,8 @@ FEATURE_CENTRO_COMS=1
 Importante:
 
 - `SITE_URL` va **sin barra final** y es la dirección exacta del sitio. Se usa para generar los enlaces de los correos.
-- Con `APP_ENV=production` el sistema asume que la raíz web es `public/`. Si no se configura así (paso 4), los enlaces se rompen.
+- En todos los entornos (también en desarrollo) `SITE_URL` debe apuntar a la carpeta `public/`, que es la raíz web (paso 4). Si no, los enlaces se rompen.
+- Con Apache, `AllowOverride All` debe estar activo en el DocumentRoot para que se apliquen `public/.htaccess` y `public/uploads/.htaccess` (el `dockerfile` ya lo configura).
 
 ### Paso 4 — Configurar el servidor web
 

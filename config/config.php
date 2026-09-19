@@ -73,10 +73,10 @@ ini_set('session.cookie_httponly', 1);
 ini_set('session.use_only_cookies', 1);
 ini_set('session.cookie_secure', env('SESSION_COOKIE_SECURE', APP_ENV === 'production' ? '1' : '0'));
 
-// URLs base - CORREGIDAS PARA DESPLIEGUE
-// En Render, como el DocumentRoot apunta a /public, SITE_URL ya es la raíz.
-define('SITE_URL', rtrim(env('SITE_URL', 'http://localhost/parque_industrial'), '/'));
-define('PUBLIC_URL', APP_ENV === 'production' ? SITE_URL : SITE_URL . '/public');
+// URLs base. La raíz web es siempre public/, en todos los entornos:
+// SITE_URL debe ser la URL que apunta a esa carpeta (p. ej. http://localhost:8080).
+define('SITE_URL', rtrim(env('SITE_URL', 'http://localhost:8080'), '/'));
+define('PUBLIC_URL', SITE_URL);
 define('EMPRESA_URL', PUBLIC_URL . '/empresa');
 define('MINISTERIO_URL', PUBLIC_URL . '/ministerio');
 

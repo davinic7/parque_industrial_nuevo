@@ -1,0 +1,12 @@
+# Red de seguridad: la raíz web debe ser public/, pero si el servidor apunta
+# a esta carpeta (p. ej. XAMPP sin VirtualHost) se bloquea todo lo que no es público.
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(config|includes|database|docs|logs|node_modules|test_screenshots|imagenes[ %20]demo)(/|$) - [F,L,NC]
+</IfModule>
+
+<FilesMatch "^\.(?!well-known)|\.(env|sql|log|md|lock)$|^dockerfile$">
+    Require all denied
+</FilesMatch>

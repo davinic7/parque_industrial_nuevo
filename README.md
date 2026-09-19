@@ -19,7 +19,7 @@ Aplicación PHP (sitio público, panel empresa y panel ministerio).
    php -S localhost:8080 -t public
    ```
 
-   Abrir `http://localhost:8080` y ajustar `SITE_URL` en `.env` si usás otro puerto o ruta.
+   Abrir `http://localhost:8080`. `SITE_URL` en `.env` debe ser la URL que apunta a `public/` (ej. `http://localhost:8080`); si cambiás el puerto, ajustalo.
 
 ## Cloudinary
 

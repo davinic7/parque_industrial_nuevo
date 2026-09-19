@@ -46,8 +46,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verify_csrf($_POST[CSRF_TOKEN_NAME]
                     $dest->execute([$solicitud['email']]);
                     $dest_user = $dest->fetch();
                     if ($dest_user) {
-                        $db->prepare("INSERT INTO mensajes (remitente_id, destinatario_id, empresa_id, asunto, contenido) VALUES (?, ?, ?, ?, ?)")
-                           ->execute([$_SESSION['user_id'], $dest_user['id'], $dest_user['emp_id'], $asunto, $contenido]);
+                        require_once BASEPATH . '/includes/comunicaciones.php';
+                        if (FEATURE_CENTRO_COMS && coms_schema_disponible() && $dest_user['emp_id']) {
+                            // Centro de Comunicaciones: reutiliza el hilo de la solicitud si ya existe
+                            $hilo = $db->prepare("SELECT id FROM conversaciones WHERE referencia_tipo = 'solicitud_proyecto' AND referencia_id = ?");
+                            $hilo->execute([$id]);
+                            $conv_id = (int)$hilo->fetchColumn();
+                            if (!$conv_id) {
+                                $conv_id = coms_crear_conversacion([
+                                    'titulo'          => $asunto,
+                                    'empresa_id'      => $dest_user['emp_id'],
+                                    'iniciada_por'    => 'ministerio',
+                                    'categoria'       => 'tramite',
+                                    'referencia_tipo' => 'solicitud_proyecto',
+                                    'referencia_id'   => $id,
+                                ]);
+                            }
+                            coms_enviar_mensaje([
+                                'conversacion_id' => $conv_id,
+                                'remitente_id'    => $_SESSION['user_id'],
+                                'remitente_tipo'  => 'ministerio',
+                                'contenido'       => $asunto . "\n\n" . $contenido,
+                            ]);
+                        } else {
+                            $db->prepare("INSERT INTO mensajes (remitente_id, destinatario_id, empresa_id, asunto, contenido) VALUES (?, ?, ?, ?, ?)")
+                               ->execute([$_SESSION['user_id'], $dest_user['id'], $dest_user['emp_id'], $asunto, $contenido]);
+                        }
                         set_flash('success', 'Mensaje enviado al panel de la empresa.');
                     } else {
                         $cuerpo = $contenido . "\n\n---\nParque Industrial de Catamarca — Ministerio de Producción";
