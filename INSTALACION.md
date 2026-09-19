@@ -15,7 +15,7 @@ Desarrollo: DaviNic Developer — Jorge David Nicolau López — davinic7@gmail.
 | Servidor web | Apache 2.4 (con `mod_rewrite`) o Nginx + PHP-FPM |
 | Frontend | Bootstrap 5, Leaflet 1.9.4, JavaScript sin compilar (no requiere Node ni npm) |
 | Raíz web | La carpeta **`public/`** |
-| Estructura | 31 tablas + 2 vistas |
+| Estructura | 29 tablas + 2 vistas |
 
 ---
 

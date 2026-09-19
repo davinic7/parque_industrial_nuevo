@@ -539,41 +539,6 @@ CREATE TABLE `plantillas_respuesta` (
   KEY `idx_activa_orden` (`activa`,`orden`,`titulo`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ----------------------------------------------------------------------------
--- Tabla: formularios_config
--- ----------------------------------------------------------------------------
-DROP TABLE IF EXISTS `formularios_config`;
-CREATE TABLE `formularios_config` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `nombre` varchar(100) NOT NULL,
-  `descripcion` text DEFAULT NULL,
-  `campos` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'Estructura JSON de campos' CHECK (json_valid(`campos`)),
-  `activo` tinyint(1) DEFAULT 1,
-  `obligatorio` tinyint(1) DEFAULT 0,
-  `fecha_limite` date DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ----------------------------------------------------------------------------
--- Tabla: respuestas_formulario
--- ----------------------------------------------------------------------------
-DROP TABLE IF EXISTS `respuestas_formulario`;
-CREATE TABLE `respuestas_formulario` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `formulario_id` int(11) NOT NULL,
-  `empresa_id` int(11) NOT NULL,
-  `respuestas` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL CHECK (json_valid(`respuestas`)),
-  `estado` enum('borrador','enviado','aprobado','rechazado') DEFAULT 'borrador',
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_form_empresa` (`formulario_id`,`empresa_id`),
-  KEY `empresa_id` (`empresa_id`),
-  CONSTRAINT `respuestas_formulario_ibfk_1` FOREIGN KEY (`formulario_id`) REFERENCES `formularios_config` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `respuestas_formulario_ibfk_2` FOREIGN KEY (`empresa_id`) REFERENCES `empresas` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ----------------------------------------------------------------------------
 -- Tabla: formularios_dinamicos
