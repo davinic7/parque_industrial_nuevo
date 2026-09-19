@@ -235,7 +235,11 @@ sudo crontab -u www-data -e
 0 * * * * php /var/www/parque_industrial/public/ministerio/cron/limpiar-tokens.php
 # Limpieza de intentos de login (diario 03:00)
 0 3 * * * php /var/www/parque_industrial/public/ministerio/cron/limpiar-login-attempts.php
+# Purga del historial que crece sin límite: registro de actividad y visitas (diario 03:30)
+30 3 * * * php /var/www/parque_industrial/public/ministerio/cron/limpiar-historial.php
 ```
+
+`limpiar-historial.php` conserva por defecto 365 días de `log_actividad` y 180 de `visitas_empresa` (se cambia con `LOG_RETENCION_DIAS` y `VISITAS_RETENCION_DIAS` en el `.env`; el mínimo es 30). `--dry-run` solo informa cuántas filas borraría. Además crea, si falta, el índice `idx_fecha` de `visitas_empresa` (necesario en bases instaladas antes de septiembre de 2026).
 
 Por consola no necesitan clave. Si se ejecutan por HTTP, requieren `?key=CRON_SECRET`.
 
@@ -308,7 +312,7 @@ CLOUDINARY_API_SECRET=
 - [ ] `/presentar-proyecto.php` envía una solicitud y aparece en el panel del Ministerio.
 - [ ] `https://SITIO/.env`, `https://SITIO/config/config.php` y `https://SITIO/database/` devuelven 404 (no son accesibles desde el navegador).
 - [ ] `logs/error.log` no registra errores nuevos.
-- [ ] Los cron se ejecutan (`php …/limpiar-tokens.php` debe mostrar `OK tokens limpiados`).
+- [ ] Los cron se ejecutan (`php …/limpiar-tokens.php` debe mostrar `OK tokens limpiados`; `php …/limpiar-historial.php --dry-run` debe mostrar `SIMULACION …`).
 
 ---
 

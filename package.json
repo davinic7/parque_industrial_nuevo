@@ -11,7 +11,8 @@
     "test:ministerio": "php tests/ministerio.php",
     "test:cloudinary": "php tests/cloudinary.php",
     "test:assets": "php tests/assets.php",
-    "test:sin-cdn": "node test_sin_cdn.js"
+    "test:sin-cdn": "node test_sin_cdn.js",
+    "test:mantenimiento": "php tests/mantenimiento.php"
   },
   "keywords": [],
   "author": "",

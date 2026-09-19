@@ -261,6 +261,7 @@ CREATE TABLE `visitas_empresa` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   KEY `idx_empresa_fecha` (`empresa_id`,`created_at`),
+  KEY `idx_fecha` (`created_at`),
   CONSTRAINT `visitas_empresa_ibfk_1` FOREIGN KEY (`empresa_id`) REFERENCES `empresas` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

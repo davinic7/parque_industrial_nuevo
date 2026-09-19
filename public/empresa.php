@@ -24,14 +24,8 @@ try {
         redirect(PUBLIC_URL . '/empresas.php');
     }
     
-    // Incrementar visitas
-    $db->prepare("UPDATE empresas SET visitas = visitas + 1 WHERE id = ?")->execute([$empresa_id]);
-
-    // Registrar visita para mapa de calor (tabla opcional, ignorar si no existe)
-    try {
-        $stmt = $db->prepare("INSERT INTO visitas_empresa (empresa_id, ip, user_agent) VALUES (?, ?, ?)");
-        $stmt->execute([$empresa_id, $_SERVER['REMOTE_ADDR'] ?? null, $_SERVER['HTTP_USER_AGENT'] ?? null]);
-    } catch (Exception $e) { /* tabla aún no creada, no es crítico */ }
+    // Contar la visita (ignora robots y refrescos de la misma IP en 30 min) y registrarla para el mapa de calor
+    registrar_visita_empresa($db, $empresa_id, $_SERVER['REMOTE_ADDR'] ?? null, $_SERVER['HTTP_USER_AGENT'] ?? null);
     
     // Obtener datos adicionales si existen (tabla opcional)
     $datos = null;
