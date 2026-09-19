@@ -52,7 +52,8 @@ function env_bool($key, $default = false) {
 }
 
 // Entorno de la app
-define('APP_ENV', env('APP_ENV', 'development'));
+// Por defecto 'production' (fallar cerrado): si falta la variable no se exponen errores ni herramientas de desarrollo.
+define('APP_ENV', env('APP_ENV', 'production'));
 
 // Configuración de errores (segun entorno)
 $debug_enabled = env_bool('APP_DEBUG', APP_ENV !== 'production');
@@ -71,7 +72,16 @@ date_default_timezone_set('America/Argentina/Catamarca');
 // Configuración de sesiones
 ini_set('session.cookie_httponly', 1);
 ini_set('session.use_only_cookies', 1);
+ini_set('session.use_strict_mode', 1);
+ini_set('session.cookie_samesite', 'Lax');
 ini_set('session.cookie_secure', env('SESSION_COOKIE_SECURE', APP_ENV === 'production' ? '1' : '0'));
+
+// Cabeceras de seguridad (también en .htaccess, pero acá valen con cualquier servidor web)
+if (PHP_SAPI !== 'cli') {
+    header('X-Content-Type-Options: nosniff');
+    header('X-Frame-Options: SAMEORIGIN');
+    header('Referrer-Policy: strict-origin-when-cross-origin');
+}
 
 // URLs base. La raíz web es siempre public/, en todos los entornos:
 // SITE_URL debe ser la URL que apunta a esa carpeta (p. ej. http://localhost:8080).
