@@ -50,7 +50,18 @@ function historial_purgar_tabla(PDO $db, string $tabla, int $dias, bool $simular
 
 /** @return array{log_actividad:int, visitas_empresa:int, indice_creado:bool} */
 function historial_purgar(PDO $db, int $log_dias, int $visitas_dias, bool $simular = false, int $lote = 5000): array {
-    $indice = $simular ? false : historial_asegurar_indice($db);
+    $indice = false;
+    if (!$simular) {
+        try {
+            $indice = historial_asegurar_indice($db);
+        } catch (PDOException $e) {
+            // Con el usuario de permisos mínimos (sin ALTER) esto no se puede crear, y no es motivo para
+            // dejar de purgar: el índice solo acelera el borrado. El instalador ya lo trae; si falta, crearlo
+            // con un administrador.
+            error_log('historial: no se pudo crear idx_fecha en visitas_empresa (' . $e->getMessage()
+                . '). Crearlo con un usuario administrador: ALTER TABLE visitas_empresa ADD INDEX idx_fecha (created_at)');
+        }
+    }
     return [
         'log_actividad'   => historial_purgar_tabla($db, 'log_actividad', $log_dias, $simular, $lote),
         'visitas_empresa' => historial_purgar_tabla($db, 'visitas_empresa', $visitas_dias, $simular, $lote),
