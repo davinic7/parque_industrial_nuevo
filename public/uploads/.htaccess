@@ -1,0 +1,11 @@
+# Los archivos subidos nunca deben poder ejecutarse como script, aunque un
+# archivo logre colarse con una extensión de PHP (defensa en profundidad; la
+# extensión real ya se valida por el MIME del contenido en store_upload()).
+
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+
+<FilesMatch "\.(php\d?|phtml|phar|pl|py|cgi|sh|exe)$">
+    Require all denied
+</FilesMatch>

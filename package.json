@@ -9,6 +9,7 @@
     "test:seguridad": "php tests/seguridad.php",
     "test:aislamiento": "php tests/aislamiento.php",
     "test:ministerio": "php tests/ministerio.php",
+    "test:ministerio-gestion": "php tests/ministerio_gestion.php",
     "test:cloudinary": "php tests/cloudinary.php",
     "test:assets": "php tests/assets.php",
     "test:sin-cdn": "node test_sin_cdn.js",

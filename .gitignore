@@ -9,6 +9,7 @@ logs/*.log
 # Subidas de usuarios
 public/uploads/*
 !public/uploads/.gitkeep
+!public/uploads/.htaccess
 
 # SO / IDE
 Thumbs.db

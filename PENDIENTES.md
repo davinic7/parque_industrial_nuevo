@@ -1,6 +1,6 @@
 # Pendientes — Portal Parque Industrial de Catamarca
 
-Actualizado: 2026-09-19. Estado: `master` sincronizada con GitHub (`davinic7/parque_industrial_nuevo`), árbol de trabajo limpio, todas las suites en verde (ver "Cómo probar").
+Actualizado: 2026-09-21. Estado: rama `claude/modest-turing-z636ws`, árbol de trabajo limpio, todas las suites en verde (ver "Cómo probar").
 
 ## Por dónde continuar
 
@@ -37,7 +37,7 @@ La lista de **mejoras de código está cerrada**. Lo que queda es de **despliegu
 ## Mejoras opcionales
 
 - [ ] **Archivos que aún superan las 500 líneas** (ya no mezclan JavaScript ni CSS en línea): `public/ministerio/sitio-publico.php` (595), `public/empresa/perfil.php` (573), `public/empresa/formulario_dinamico.php` (574), `public/ministerio/solicitudes-proyecto.php` (549) e `includes/comunicaciones.php` (552). Son vistas de PHP+HTML; partirlas en partials es posible pero aporta poco. Para verificar un refactor: `php tests/capturar_js.php <carpeta>` antes y después, y comparar el JavaScript, CSS y HTML resultantes.
-- [ ] **Más pruebas automáticas.** El bloqueo de login por IP no se automatizó porque dejaría sin login a los demás tests durante 15 minutos. Del lado del Ministerio aún no se prueban: alta y edición de empresas (`nueva-empresa.php`, `empresa-editar.php`), formularios dinámicos (creación/edición) y banners.
+- [ ] **Más pruebas automáticas.** El bloqueo de login por IP no se automatizó porque dejaría sin login a los demás tests durante 15 minutos.
 - [ ] **Caché de portada y estadísticas: descartada.** Se midió: la portada hace 9 consultas (16 ms) y la página más pesada 14 (42 ms) con la base de demo; `get_config` ya se carga una vez por petición y el resto son agregados pequeños sobre `empresas`. Reevaluar solo si con datos de producción alguna página pasa de ~300 ms.
 
 ## Datos y base local
@@ -56,6 +56,7 @@ php -S localhost:8080 -t public      # servidor (la raíz web es public/)
 npm run test:seguridad               # seguridad, <1 s, sin navegador ni servidor                        (11)
 npm run test:aislamiento             # aislamiento entre empresas y escritura; crea/borra datos zz_test_* (20)
 npm run test:ministerio              # permisos y escritura del panel del Ministerio                     (13)
+npm run test:ministerio-gestion      # alta de empresas, reset de contraseña, formularios dinámicos y banners (23)
 npm run test:cloudinary              # subidas a un Cloudinary simulado; levanta servidores en 8090/8091; exige .env sin CLOUDINARY_* (12)
 npm run test:assets                  # ninguna página carga de un CDN y cada recurso local existe        (35)
 npm run test:mantenimiento           # conteo de visitas (robots, refrescos) y purga del historial      (19)
@@ -73,8 +74,9 @@ Todas necesitan la base de datos local. Salvo `test:seguridad` (no usa servidor)
 - **Crítico corregido:** ejecución remota de código por subida de archivos (extensión tomada del nombre del cliente) en `presentar-proyecto.php` y en los formularios del Ministerio; ahora la extensión sale del MIME verificado.
 - Una empresa podía publicar mensajes dentro de un comunicado global (visible para todas); ahora lectura y escritura están separadas (`coms_puede_escribir`).
 - Cookie de sesión `SameSite=Lax` + modo estricto, cabeceras de seguridad, `APP_ENV` por defecto `production`, `.htaccess` (raíz y `public/`), `dockerfile` con `AllowOverride All`.
+- **Crítico corregido:** `public/uploads/.htaccess` no existía en el repo (aunque `tests/seguridad.php` e `INSTALACION.md` ya lo daban por hecho); en un Apache real, cualquier archivo subido que lograra colarse con extensión `.php` se habría ejecutado como script. Creado: desactiva el motor PHP y niega el acceso a extensiones de script dentro de `uploads/`.
 - Auditoría sin hallazgos en: SQL (parametrizado), CSRF, XSS reflejado y almacenado, permisos entre empresas y roles, cron, recuperación de contraseña, bloqueo de login.
-- Pruebas: `seguridad`, `aislamiento` y `ministerio` (arriba).
+- Pruebas: `seguridad`, `aislamiento`, `ministerio` y `ministerio-gestion` (arriba).
 
 **Mensajería**
 - Unificada en el Centro de Comunicaciones (`mensajes_v2`): `FEATURE_CENTRO_COMS` es siempre verdadero, se eliminaron `comunicados.php` y `mensajes-entrada.php` y las ramas viejas; tabla `mensajes` fuera del SQL oficial.
@@ -82,6 +84,10 @@ Todas necesitan la base de datos local. Salvo `test:seguridad` (no usa servidor)
 
 **Archivos y almacenamiento**
 - `store_upload()`: con Cloudinary configurado, imágenes (`image`) y documentos (`raw`) van a Cloudinary en Comunicaciones, formularios y "Presentar proyecto"; respaldo a disco local si falla. En la base se guarda la URL o el nombre local y las pantallas usan `uploads_resolve_url()`.
+
+**Panel del Ministerio: alta de empresas, formularios dinámicos y banners**
+- Nuevas pruebas (`tests/ministerio_gestion.php`, `npm run test:ministerio-gestion`): permisos de `nueva-empresa.php`, `empresa-detalle.php` (reset de contraseña), `formulario-nuevo.php`/`formulario-editar.php` y `banners.php` (una empresa o un anónimo no pueden ejecutar estas acciones, el Ministerio sí, y sus validaciones).
+- Corregido: `formulario-nuevo.php` insertaba el formulario antes de validar sus preguntas; si una pregunta de tipo lista se enviaba sin opciones, quedaba un formulario "huérfano" sin preguntas en vez de rechazar todo el alta. Ahora está en una transacción, igual que `formulario-editar.php`.
 
 **Sitio sin dependencias externas**
 - Librerías en `public/vendor/` (Bootstrap, Bootstrap Icons, Font Awesome, Leaflet + Draw, Chart.js, SweetAlert2, SortableJS, Quill y tipografías); versiones y licencias en `public/vendor/README.md`. Solo siguen siendo externos los mapas (teselas OpenStreetMap/ArcGIS) y reCAPTCHA.

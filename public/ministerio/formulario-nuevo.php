@@ -35,6 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Debe ingresar un título.';
         } else {
             try {
+                $db->beginTransaction();
                 $stmt = $db->prepare("INSERT INTO formularios_dinamicos (titulo, descripcion, estado, creado_por) VALUES (?, ?, ?, ?)");
                 $stmt->execute([$titulo, $descripcion, $estado, $_SESSION['user_id']]);
                 $formulario_id = (int)$db->lastInsertId();
@@ -102,10 +103,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $stmt->execute([$formulario_id, $tipo, $label, $ayuda, $requerido, $opciones, $min_valor, $max_valor, $i + 1]);
                 }
 
+                $db->commit();
                 log_activity('formulario_dinamico_creado', 'formularios_dinamicos', $formulario_id);
                 set_flash('success', 'Formulario creado correctamente.');
                 redirect('formularios-dinamicos.php');
             } catch (Exception $e) {
+                if ($db->inTransaction()) $db->rollBack();
                 $error = $e->getMessage() ?: 'Error al crear el formulario.';
             }
         }
