@@ -15,7 +15,8 @@ La lista de **mejoras de código está cerrada**. Lo que queda es de **despliegu
 ## Antes de desplegar a producción (obligatorio)
 
 - [ ] **Cambiar contraseñas de las cuentas demo.** `admin@parqueindustrial.gob.ar`, `ministerio@catamarca.gob.ar` y `empresa@demo.com` tienen `admin123` en la base local; el seed de instalación usa `Demo1234`. No crear cuentas con clave conocida en producción.
-- [ ] **Usuario de base de datos con permisos mínimos.** Hoy se usa `root` (contraseña `root123` en el `.env` local). Crear un usuario solo con permisos sobre `parque_industrial` (ver `INSTALACION.md`, sección 2.3).
+- [ ] **Usuario de base de datos con permisos mínimos.** Hoy el entorno local usa `root` (contraseña `root123` en el `.env`). **Ya está preparado:** ejecutar `database/crear_usuario_app.sql` en el servidor (solo concede `SELECT, INSERT, UPDATE, DELETE`; no toca datos), cambiando antes la contraseña de la plantilla, y poner ese usuario en `DB_USER`/`DB_PASS`. La estructura se importa siempre con el administrador. Pendiente: hacerlo en el servidor real y confirmar que la app funciona con ese usuario (no se probó contra una base con el usuario limitado).
+- [ ] **Completar el `.env` de producción** a partir de `.env.production.example` (ya preparado, con todo lo obligatorio marcado como `CAMBIAR`).
 - [ ] **`APP_ENV=production`** y `APP_DEBUG=0` en el servidor. Si falta la variable, ya es `production` por defecto, pero conviene declararla.
 - [ ] **`FORCE_HTTPS=1`** y `SESSION_COOKIE_SECURE=1` (con HTTPS activo).
 - [ ] **Claves de reCAPTCHA** (`RECAPTCHA_SITE_KEY` / `RECAPTCHA_SECRET_KEY`). Sin ellas, el login, la recuperación de contraseña y "Presentar proyecto" quedan abiertos a spam. En local están vacías.

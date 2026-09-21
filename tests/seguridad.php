@@ -155,6 +155,48 @@ prueba('el dockerfile habilita AllowOverride (si no, Apache ignora los .htaccess
     verdadero(strpos(leer('dockerfile'), 'AllowOverride All') !== false, 'falta AllowOverride All');
 });
 
+echo "\nDespliegue\n";
+
+/** Líneas de SQL/Markdown sin comentarios ni vacías, en mayúsculas. */
+function sql_util(string $rel): string {
+    $sal = [];
+    foreach (preg_split('/\R/', leer($rel)) as $l) {
+        $l = trim($l);
+        if ($l === '' || strpos($l, '--') === 0) {
+            continue;
+        }
+        $sal[] = strtoupper($l);
+    }
+    return implode("\n", $sal);
+}
+
+prueba('la plantilla de producción (.env.production.example) es segura por defecto', function () {
+    $env = leer('.env.production.example');
+    verdadero($env !== '', 'falta .env.production.example');
+    foreach (['APP_ENV=production', 'APP_DEBUG=0', 'FORCE_HTTPS=1', 'SESSION_COOKIE_SECURE=1'] as $linea) {
+        verdadero(preg_match('/^' . preg_quote($linea, '/') . '\s*$/m', $env) === 1, "falta $linea");
+    }
+    verdadero(preg_match('/^DB_USER=root\s*$/m', $env) !== 1, 'DB_USER no debe ser root');
+    verdadero(preg_match('/^DB_PASS=\S*(admin123|root123|Demo1234)/m', $env) !== 1, 'DB_PASS con una clave conocida');
+});
+
+prueba('el usuario de base de datos de la app tiene permisos mínimos (sin GRANT ALL)', function () {
+    foreach (['database/crear_usuario_app.sql', 'INSTALACION.md'] as $rel) {
+        // Sentencia real (GRANT ALL [PRIVILEGES] ON ...); no dispara con la advertencia en texto de la documentación.
+        verdadero(preg_match('/GRANT\s+ALL(\s+PRIVILEGES)?\s+ON\b/', sql_util($rel)) !== 1, "$rel concede GRANT ALL ... ON");
+    }
+    $sql = sql_util('database/crear_usuario_app.sql');
+    verdadero(strpos($sql, 'GRANT SELECT, INSERT, UPDATE, DELETE ON') !== false, 'no concede SELECT/INSERT/UPDATE/DELETE');
+});
+
+prueba('crear_usuario_app.sql no puede destruir datos si se ejecuta sobre una base con información', function () {
+    $sql = sql_util('database/crear_usuario_app.sql');
+    verdadero($sql !== '', 'falta database/crear_usuario_app.sql');
+    foreach (['DROP ', 'TRUNCATE', 'DELETE FROM', 'ALTER TABLE', 'CREATE TABLE', 'CREATE DATABASE', 'USE '] as $peligro) {
+        verdadero(strpos($sql, $peligro) === false, "contiene $peligro");
+    }
+});
+
 echo "\n";
 $total = $pasan + count($fallan);
 echo "Resultado: $pasan de $total pruebas OK\n\n";

@@ -121,9 +121,12 @@ mysql -u root -p
 ```sql
 CREATE DATABASE parque_industrial CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE USER 'parque_app'@'localhost' IDENTIFIED BY 'CONTRASEÑA_SEGURA';
-GRANT ALL PRIVILEGES ON parque_industrial.* TO 'parque_app'@'localhost';
+-- Permisos mínimos: la aplicación solo necesita leer y escribir datos, nunca crear ni borrar tablas.
+GRANT SELECT, INSERT, UPDATE, DELETE ON parque_industrial.* TO 'parque_app'@'localhost';
 FLUSH PRIVILEGES;
 ```
+
+> **No usar `GRANT ALL PRIVILEGES`.** Con ese permiso, si alguna vez se explotara una falla de la aplicación, el atacante podría borrar tablas enteras. Hay una plantilla lista en `database/crear_usuario_app.sql` (crea solo el usuario, no toca datos). La estructura se importa siempre con el usuario administrador (paso siguiente), no con `parque_app`.
 
 ```bash
 # 2) Importar la estructura (como administrador de MySQL)
@@ -136,7 +139,7 @@ mysql -u root -p < /var/www/parque_industrial/database/parque_industrial_oficial
 
 ```bash
 cd /var/www/parque_industrial
-cp .env.example .env
+cp .env.production.example .env   # plantilla de producción, con todo lo que hay que completar marcado como CAMBIAR
 chmod 640 .env && chown www-data:www-data .env
 ```
 
