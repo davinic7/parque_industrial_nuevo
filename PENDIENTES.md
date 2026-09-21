@@ -10,10 +10,7 @@ La lista de **mejoras de código está cerrada**. Lo que queda es de **despliegu
 2. **Programar los cron** en el servidor (`INSTALACION.md`, paso 6). Incluye `limpiar-historial.php`, que todavía no está programado: hasta entonces `log_actividad` y `visitas_empresa` siguen creciendo.
 3. **Probar en un Apache real**: los `.htaccess` (bloqueo de scripts en `uploads/`, cabeceras) no se pudieron probar en local porque el servidor de PHP los ignora.
 4. **Probar Cloudinary con una cuenta real** (solo se probó contra un Cloudinary simulado): subir un PDF, un Word y una imagen desde Comunicaciones y comprobar que abren.
-5. **Dos tareas manuales en el entorno local** (este entorno de desarrollo no pudo hacerlas por permisos):
-   - Borrar los 2 PDF de prueba (69 bytes) de `public/uploads/mensajes/`.
-   - Ejecutar en la base local `DROP TABLE mensajes;` (tabla vieja, vacía, ya sin uso).
-6. Opcional, si se quiere seguir mejorando el código: ver "Mejoras opcionales".
+5. Opcional, si se quiere seguir mejorando el código: ver "Mejoras opcionales".
 
 ## Antes de desplegar a producción (obligatorio)
 
@@ -44,7 +41,7 @@ La lista de **mejoras de código está cerrada**. Lo que queda es de **despliegu
 
 - La base local (`127.0.0.1`, `parque_industrial`) tiene el set de demo del seed viejo (8 empresas, 6 formularios), **no exactamente** los datos anteriores al 2026-09-19. Se perdieron: 1 solicitud de proyecto de prueba (`test@example.com`), 2 mensajes del Centro de Comunicaciones y 1 respuesta de formulario real.
 - **No ejecutar `database/parque_industrial_oficial.sql` sobre una base con datos:** es un script de instalación completa (`DROP TABLE` + `CREATE TABLE` de todas las tablas, con `USE parque_industrial` fijo). Solo para bases nuevas.
-- El SQL oficial define **28 tablas + 2 vistas**. Se quitaron las tablas sin uso `respuestas_formulario`, `formularios_config` y `mensajes` (esta última aún existe, vacía, en la base local: ver "Por dónde continuar", punto 5). Los archivos `database/parque_industrial.sql` y `parque_industrial_exportar.sql` son volcados antiguos y aún las incluyen.
+- El SQL oficial define **28 tablas + 2 vistas**. Se quitaron las tablas sin uso `respuestas_formulario`, `formularios_config` y `mensajes`; las tres ya están borradas también de la base local (28 tablas, verificado el 2026-09-21). Los archivos `database/parque_industrial.sql` y `parque_industrial_exportar.sql` son volcados antiguos y aún las incluyen.
 - Los `seed_*.sql` borrados siguen en el historial de git (commit `b1f7a49`).
 
 ## Cómo probar
