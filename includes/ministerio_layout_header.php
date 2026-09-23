@@ -95,6 +95,7 @@ $mn = static function (string $key) use ($ministerio_nav): string {
             <div class="empresa-sidebar-section">Comunicación</div>
             <a href="comunicaciones.php" class="<?= $mn('comunicaciones') ?>"><i class="fa-solid fa-comments"></i> Comunicaciones <span class="badge bg-danger rounded-pill<?= $badge_coms === 0 ? ' d-none' : '' ?>" id="coms-badge-sidebar"><?= $badge_coms > 99 ? '99+' : $badge_coms ?></span></a>
             <a href="plantillas.php" class="<?= $mn('plantillas') ?>"><i class="fa-solid fa-file-lines"></i> Plantillas</a>
+            <a href="contactos-emergencia.php" class="<?= $mn('contactos') ?>"><i class="fa-solid fa-phone-volume"></i> Contactos de emergencia</a>
 
             <div class="empresa-sidebar-section">Catastro</div>
             <a href="lotes.php" class="<?= $mn('lotes') ?>"><i class="fa-solid fa-map"></i> Lotes del parque</a>

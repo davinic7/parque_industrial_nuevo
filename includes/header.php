@@ -122,6 +122,9 @@ if ($current_page !== 'index') {
         case 'presentar-proyecto':
             $breadcrumb_flat[] = ['label' => 'Presentar proyecto', 'url' => ''];
             break;
+        case 'contactos':
+            $breadcrumb_flat[] = ['label' => 'Contactos de emergencia', 'url' => ''];
+            break;
         case 'recuperar':
             $breadcrumb_flat[] = ['label' => 'Recuperar contraseña', 'url' => ''];
             break;
@@ -242,6 +245,11 @@ if ($current_page !== 'index') {
                     <li class="nav-item">
                         <a class="nav-link <?= $current_page === 'noticias' || $current_page === 'publicacion' ? 'active' : '' ?>" href="<?= PUBLIC_URL ?>/noticias.php">
                             <i class="bi bi-newspaper"></i> Noticias
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <?= $current_page === 'contactos' ? 'active' : '' ?>" href="<?= PUBLIC_URL ?>/contactos.php">
+                            <i class="bi bi-telephone"></i> Contactos
                         </a>
                     </li>
                     <li class="nav-item">
