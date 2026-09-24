@@ -89,6 +89,7 @@ $nav = static function (string $key) use ($empresa_nav): string {
             <?php endif; ?>
             <a href="publicaciones.php" class="<?= $nav('publicaciones') ?>"><i class="fa-solid fa-bullhorn"></i> Publicaciones</a>
             <a href="comunicaciones.php" class="<?= $nav('comunicaciones') ?>"><i class="fa-solid fa-comments"></i> Comunicaciones <span class="badge bg-danger rounded-pill<?= $badge_coms === 0 ? ' d-none' : '' ?>" id="coms-badge-sidebar"><?= $badge_coms > 99 ? '99+' : $badge_coms ?></span></a>
+            <a href="contactos.php" class="<?= $nav('contactos') ?>"><i class="fa-solid fa-phone-volume"></i> Contactos de emergencia</a>
         </nav>
         <div class="empresa-sidebar-footer">
             <a href="<?= e(PUBLIC_URL) ?>/" target="_blank" rel="noopener"><i class="fa-solid fa-globe"></i> Ver sitio público</a>

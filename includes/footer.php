@@ -27,6 +27,7 @@
                         <li class="mb-2"><a href="<?= PUBLIC_URL ?>/empresas.php">Empresas</a></li>
                         <li class="mb-2"><a href="<?= PUBLIC_URL ?>/mapa.php">Mapa</a></li>
                         <li class="mb-2"><a href="<?= PUBLIC_URL ?>/estadisticas.php">Estadísticas</a></li>
+                        <li class="mb-2"><a href="<?= PUBLIC_URL ?>/contactos.php">Contactos de emergencia</a></li>
                     </ul>
                 </div>
                 <div class="col-lg-3 col-md-4 mb-4">
