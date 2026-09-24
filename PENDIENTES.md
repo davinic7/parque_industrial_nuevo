@@ -55,6 +55,7 @@ npm run test:seguridad               # seguridad, <1 s, sin navegador ni servido
 npm run test:aislamiento             # aislamiento entre empresas y escritura; crea/borra datos zz_test_* (20)
 npm run test:ministerio              # permisos y escritura del panel del Ministerio                     (13)
 npm run test:ministerio-gestion      # alta de empresas, reset de contraseña, formularios dinámicos y banners (23)
+npm run test:contactos               # directorio de contactos de emergencia: sitio, panel de empresa y ABM del Ministerio; exige aplicar database/023 (23)
 npm run test:cloudinary              # subidas a un Cloudinary simulado; levanta servidores en 8090/8091; exige .env sin CLOUDINARY_* (12)
 npm run test:assets                  # ninguna página carga de un CDN y cada recurso local existe        (35)
 npm run test:mantenimiento           # conteo de visitas (robots, refrescos) y purga del historial      (19)
@@ -74,7 +75,7 @@ Todas necesitan la base de datos local. Salvo `test:seguridad` (no usa servidor)
 - Cookie de sesión `SameSite=Lax` + modo estricto, cabeceras de seguridad, `APP_ENV` por defecto `production`, `.htaccess` (raíz y `public/`), `dockerfile` con `AllowOverride All`.
 - **Crítico corregido:** `public/uploads/.htaccess` no existía en el repo (aunque `tests/seguridad.php` e `INSTALACION.md` ya lo daban por hecho); en un Apache real, cualquier archivo subido que lograra colarse con extensión `.php` se habría ejecutado como script. Creado: desactiva el motor PHP y niega el acceso a extensiones de script dentro de `uploads/`.
 - Auditoría sin hallazgos en: SQL (parametrizado), CSRF, XSS reflejado y almacenado, permisos entre empresas y roles, cron, recuperación de contraseña, bloqueo de login.
-- Pruebas: `seguridad`, `aislamiento`, `ministerio` y `ministerio-gestion` (arriba).
+- Pruebas: `seguridad`, `aislamiento`, `ministerio`, `ministerio-gestion` y `contactos` (arriba).
 
 **Mensajería**
 - Unificada en el Centro de Comunicaciones (`mensajes_v2`): `FEATURE_CENTRO_COMS` es siempre verdadero, se eliminaron `comunicados.php` y `mensajes-entrada.php` y las ramas viejas; tabla `mensajes` fuera del SQL oficial.
